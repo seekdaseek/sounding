@@ -149,7 +149,53 @@ A thin web interface sits on the read API from the first milestone, not bolted o
 
 ---
 
-## 9. Verified Stellar identifiers used by the system
+## 9. Production safety: staleness, manipulation resistance, and publisher failure
+
+A number a pool consumes to set a borrow limit is only as good as the guarantees around it. Three of those guarantees are architectural rather than incidental, and they are specified here because they constrain what the publisher is permitted to do.
+
+### Staleness bounds and what a consumer does with an old number
+
+Every measurement written by the sampler carries the timestamp it was taken at, and every asset carries a maximum age.
+
+The bound is not a constant. It is derived per asset from how fast the depth of that asset actually moves, measured from the series the sampler produces. The evidence for why it has to exist is already in section 6: two runs minutes apart moved the XLM $100k haircut from 304 bps to 407 bps and direct book depth from $29,396 to $27,308. An hour-old number for a thin asset is not a conservative number, it is a wrong one.
+
+Both consumers of the value behave the same way past the bound. The read API returns the measurement timestamp and its age on every response, and sets an explicit stale flag once the age exceeds the bound for that asset. The publisher contract returns a stale state rather than the last good value, so it never serves an old number that reads as current.
+
+The documented rule for a pool creator reading stale or refused is to hold the current borrow limit and not raise it. It is explicitly not to fall back to the oracle mark alone, because pricing collateral off an unqualified mark is the failure this system exists to prevent.
+
+### Manipulation resistance
+
+Depth is cheap to fake for one block and expensive to fake for an hour. The methodology is built on that asymmetry.
+
+Time weighting. Depth is measured across the sampling window rather than read from a single snapshot, so a book stuffed shortly before a publish cannot move the published figure.
+
+New level discount. Levels that first appear inside the sampling window are discounted relative to levels that have persisted across it.
+
+Venue cap. No single venue may supply more than a stated share of the measured depth for an asset, so a thin venue cannot be inflated until it dominates the number.
+
+Disagreement refusal. Where venues disagree beyond a stated threshold, the publisher refuses to publish rather than selecting one of them. Refusal surfaces to consumers as the stale state described above.
+
+Soroban contract AMM coverage, listed as Coverage in section 8, is a precondition for this rather than a separate feature. Section 7 records that Horizon path finding may not reach Aquarius and similar venues, which means every figure produced today is a floor. A floor is acceptable for a published measurement and unacceptable for a production risk parameter: an asset whose real liquidity sits on an unmeasured venue is sized too conservatively, and an asset whose measured liquidity is concentrated on one reachable venue is sized too aggressively. The mainnet publisher therefore covers only assets the completed methodology covers.
+
+### Publisher failure and security handling
+
+The publisher is a single onchain writer, which makes its failure modes the failure modes of the system. Each one is handled explicitly.
+
+Outage. If the publisher stops writing, values age past their bound and go stale on their own. Failure is toward refusal, never toward a frozen number that reads as live.
+
+Bad data. Every candidate publish is checked against a bounded sanity band before it is written. An implausible value is rejected at the pipeline and never reaches the chain, rather than being published and corrected afterwards.
+
+Correction. A corrected value is a new publish with a new timestamp. Prior values are never silently overwritten and the history stays readable onchain.
+
+Pause. The contract carries an admin address that can pause it. A paused contract returns the stale state, not the last written value. Pausing is therefore always safe to do and never leaves a consumer reading something misleading.
+
+Key compromise. The admin key is rotatable and pausing is the first response. Because a paused contract degrades to refusal rather than to a stale figure, an attacker holding the key cannot make consumers act on a manufactured number without also preventing the pause.
+
+The STRIDE threat model, the onchain monitoring plan and the publisher failure and recovery runbook are tranche 2 deliverables and are published in this repository. The threat model maps spoofing, tampering, repudiation, information disclosure, denial of service and elevation of privilege against the publisher and its inputs onto the data flow in section 8. The monitoring plan maps each identified threat to a detectable onchain signal with a severity and a response. The runbook covers the five cases above and names who can pause, how the key rotates, and how a value is corrected.
+
+---
+
+## 10. Verified Stellar identifiers used by the system
 
 Blend V2 mainnet core contracts, from the Blend mainnet deployments documentation:
 
@@ -167,7 +213,7 @@ Individual pool addresses are not published anywhere. Blend pools are deployed p
 
 ---
 
-## 10. Repository
+## 11. Repository
 
 `github.com/seekdaseek/sounding`, MIT.
 
