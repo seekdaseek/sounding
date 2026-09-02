@@ -7,7 +7,7 @@
     "test": "test"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test test/depth.test.mjs"
   },
   "keywords": [],
   "author": "",
@@ -15,6 +15,6 @@
   "type": "module",
   "dependencies": {
     "@blend-capital/blend-sdk": "^3.3.0",
-    "@stellar/stellar-sdk": "^16.2.0"
+    "@stellar/stellar-sdk": "^16.3.0"
   }
 }
