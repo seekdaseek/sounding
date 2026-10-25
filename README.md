@@ -14,7 +14,7 @@ stays inside 50, 100, 200 and 500 bps, or says plainly that it cannot be trusted
 - Design, threat model, runbook: [`ARCHITECTURE.md`](ARCHITECTURE.md). Every claim mapped to a link or tx:
   [`docs/JUDGE_GUIDE.md`](docs/JUDGE_GUIDE.md)
 
-**Headline count:** <!-- HEADLINE:BEGIN --> **960 samples** in **6 cycles** (one per 10 minutes) over 0.0 days, 10 assets x 4 sizes x 4 venues, first sample 2026-10-25T17:56:06Z, latest 2026-10-25T18:38:20Z. 0 venue answers failed for a reason other than a missing Soroswap key, each stored as a typed row and none read as zero liquidity; 240 rows are the Soroswap venue recording `no_key`. <!-- HEADLINE:END -->
+**Headline count:** <!-- HEADLINE:BEGIN --> **1,120 samples** in **7 cycles** (one per 10 minutes) over 0.0 days, 10 assets x 4 sizes x 4 venues, first sample 2026-10-25T17:56:06Z, latest 2026-10-25T18:43:04Z. 0 venue answers failed for a reason other than a missing Soroswap key, each stored as a typed row and none read as zero liquidity; 280 rows are the Soroswap venue recording `no_key`. <!-- HEADLINE:END -->
 The live count is always `curl -s https://sounding.ochinimus.app/v1/stats`.
 
 ## What it found
@@ -22,16 +22,16 @@ The live count is always `curl -s https://sounding.ochinimus.app/v1/stats`.
 Same asset, same cycle, very different exits (cost in bps against the cycle's mark; 100 bps = 1%):
 
 <!-- FINDINGS:BEGIN -->
-Selling **$100,000** of the asset into USDC, median cost in bps over 6 cycles:
+Selling **$100,000** of the asset into USDC, median cost in bps over 7 cycles:
 
 | asset | SDEX (Horizon paths) | Aquarius | Stellar Broker | spread between venues |
 |---|---:|---:|---:|---:|
-| XLM | 38 | 323 | 36 | 286 |
-| EURC | 76 | 6,105 | 49 | 6,055 |
+| XLM | 38 | 323 | 36 | 287 |
+| EURC | 76 | 6,106 | 49 | 6,057 |
 | USTRY | 6 | 879 | 6 | 872 |
 | PYUSD | 408 | 9 | 214 | 400 |
-| ETH | 7,367 | 5,970 | 3,847 | 3,520 |
-| BTC | 3,586 | 6,506 | 2,868 | 3,638 |
+| ETH | 7,367 | 5,970 | 3,840 | 3,527 |
+| BTC | 3,588 | 6,506 | 2,871 | 3,635 |
 
 (Soroswap is wired but has not yet returned a live quote; see "What is honest".)
 <!-- FINDINGS:END -->
@@ -107,8 +107,9 @@ records typed `no_key` rows and everything else runs.
   quote** (no key was available when this was written). Until it does, three of four venues are live.
 - The mark is the median of the $1k quotes across venues. If every venue is wrong together at $1k, so
   is the mark. An independent oracle cross-check is planned, not built.
-- Safe sizes between the four sampled sizes are interpolated; the hourly bisection and the closed-form
-  order-book figure are reported beside them, labelled by method.
+- Safe sizes between the four sampled sizes are interpolated, which is conservative (XLM at 200 bps:
+  $119k interpolated against $305k bisected). The hourly bisection and the closed-form order-book
+  figure are reported beside it, labelled by method.
 - The x402 payment path is proven on **testnet**. Mainnet is not configured.
 - The Soroban publisher contract is a design, not code.
 - Liquidations are not confined to onchain venues; this measures what is sellable onchain, which is

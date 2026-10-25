@@ -39,17 +39,17 @@ for (const size of [100000, 1000000]) {
   }
 }
 
-out.push('', '### Published safe size per tolerance (latest cycle, best-exit curve, USD)', '', '| asset | 50 bps | 100 bps | 200 bps | 500 bps | closed-form SDEX book @200 | bisected @200 (venue) |', '|---|---:|---:|---:|---:|---:|---|');
+out.push('', '### Safe size per tolerance (USD): three methods side by side', '', 'Columns 50-500 bps: interpolated from the latest cycle\'s best-exit curve. `published @200`: what the API publishes (time-weighted over six cycles, capped by the latest, share-capped across independent venues). `book` = closed form on the direct SDEX order book. `bisected` = hourly bisection on live quotes (venue named).', '', '| asset | 50 bps | 100 bps | 200 bps | 500 bps | published @200 | book @200 | bisected @200 (venue) |', '|---|---:|---:|---:|---:|---:|---:|---|');
 const { exitReport } = await import('../src/read.mjs');
 const now = tot.b || Date.now();
 for (const a of assets) {
   const r = exitReport(db, a, 100000, now);
   const t = r.safe_size?.tolerance_bps; if (!t) continue;
-  const cell = (k) => `${f(t[k].safe_usd)}${t[k].limitedBy === 'sample_cap' ? '+' : ''}`;
+  const cell = (k) => `${f(t[k].safe_usd)}${t[k].limited_by === 'sample_cap' ? '+' : ''}`;
   const bis = r.safe_size.bisection_hourly?.[200];
-  out.push(`| ${a} | ${cell(50)} | ${cell(100)} | ${cell(200)} | ${cell(500)} | ${f(r.safe_size.orderbook_closed_form?.[200]?.safe_usd)} | ${bis ? `${f(bis.safe_usd)} (${bis.venue})` : 'n/a'} |`);
+  out.push(`| ${a} | ${cell(50)} | ${cell(100)} | ${cell(200)} | ${cell(500)} | ${f(r.published.safe_size_usd?.[200]?.safe_usd)} | ${f(r.safe_size.orderbook_closed_form?.[200]?.safe_usd)} | ${bis ? `${f(bis.safe_usd)}${bis.limited_by === 'sample_cap' ? '+' : ''} (${bis.venue})` : 'n/a'} |`);
 }
-out.push('', '`+` = lower bound: even the largest sampled size ($1M) stayed inside the tolerance.');
+out.push('', '`+` = lower bound: even the largest sampled size ($1M) stayed inside the tolerance. A published size of 0 means the share cap refused a single-venue depth.');
 
 out.push('', '### Stale bounds from measured drift (per asset)', '', 'Drift series = best-exit price at $100k per cycle (mark and depth together). bound = clamp((100 bps / sigma)^2 x cycle gap, 1200 s, 7200 s); 3,600 s until six cycles exist.', '', '| asset | cycles in series | cycle sigma (bps) | stale bound (s) | basis |', '|---|---:|---:|---:|---|');
 for (const a of assets) {

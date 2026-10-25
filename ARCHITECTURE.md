@@ -105,7 +105,11 @@ four venues), the disagreement between the two best, and per-venue rows for Soro
    (size, cost) points; the answer is the largest size inside tolerance by interpolation linear in
    cost and logarithmic in size. It never extrapolates: if even $1M is inside the tolerance the
    answer is a lower bound and says `sample_cap`; if even $1k is outside it is 0
-   (`below_min_sample`).
+   (`below_min_sample`). **It is conservative:** exit cost is convex in log size, so the straight
+   line between two samples lies above the curve and the interpolated size is too small. Measured on
+   2026-10-25 for XLM at 200 bps: interpolated $119k, closed-form book $264k, bisected $305k
+   (`docs/RESULTS.md`). The published size inherits this, which is the safe direction for a limit.
+   Planned: feed the hourly bisection probes back in as extra curve points.
 3. `bisection_quotes`: for AMMs, where there is no closed form. Once an hour, per asset and
    tolerance, bisect live quotes (geometric midpoints, 7 iterations, on the venue that was
    cheapest at $100k). A failed quote aborts the search as `limited_by: failed`; it is never read
@@ -372,18 +376,18 @@ every table is [`docs/RESULTS.md`](docs/RESULTS.md). The live equivalents are `G
 `GET /v1/history.csv`. Headline as of the timestamp in `docs/RESULTS.md`:
 
 <!-- RESULTS:BEGIN -->
-**960 samples** in **6 cycles** (one per 10 minutes) over 0.0 days, 10 assets x 4 sizes x 4 venues, first sample 2026-10-25T17:56:06Z, latest 2026-10-25T18:38:20Z. 0 venue answers failed for a reason other than a missing Soroswap key, each stored as a typed row and none read as zero liquidity; 240 rows are the Soroswap venue recording `no_key`.
+**1,120 samples** in **7 cycles** (one per 10 minutes) over 0.0 days, 10 assets x 4 sizes x 4 venues, first sample 2026-10-25T17:56:06Z, latest 2026-10-25T18:43:04Z. 0 venue answers failed for a reason other than a missing Soroswap key, each stored as a typed row and none read as zero liquidity; 280 rows are the Soroswap venue recording `no_key`.
 
-Selling **$100,000** of the asset into USDC, median cost in bps over 6 cycles:
+Selling **$100,000** of the asset into USDC, median cost in bps over 7 cycles:
 
 | asset | SDEX (Horizon paths) | Aquarius | Stellar Broker | spread between venues |
 |---|---:|---:|---:|---:|
-| XLM | 38 | 323 | 36 | 286 |
-| EURC | 76 | 6,105 | 49 | 6,055 |
+| XLM | 38 | 323 | 36 | 287 |
+| EURC | 76 | 6,106 | 49 | 6,057 |
 | USTRY | 6 | 879 | 6 | 872 |
 | PYUSD | 408 | 9 | 214 | 400 |
-| ETH | 7,367 | 5,970 | 3,847 | 3,520 |
-| BTC | 3,586 | 6,506 | 2,868 | 3,638 |
+| ETH | 7,367 | 5,970 | 3,840 | 3,527 |
+| BTC | 3,588 | 6,506 | 2,871 | 3,635 |
 
 (Soroswap is wired but has not yet returned a live quote; see "What is honest".)
 
