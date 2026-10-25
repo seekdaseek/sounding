@@ -114,7 +114,8 @@ records typed `no_key` rows and everything else runs.
 - Safe sizes between the four sampled sizes are interpolated, which is conservative (XLM at 200 bps:
   $119k interpolated against $305k bisected). The hourly bisection and the closed-form order-book
   figure are reported beside it, labelled by method.
-- The x402 payment path is proven on **testnet**. Mainnet is not configured.
+- The x402 payment path is proven on **testnet**. Mainnet is not configured. The in-browser wallet
+  flow (Stellar Wallets Kit) is **planned for tranche 2 and is not built**; today the payer is a script.
 - The Soroban publisher contract is a design, not code.
 - Liquidations are not confined to onchain venues; this measures what is sellable onchain, which is
   what binds in a fast cascade.

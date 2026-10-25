@@ -58,6 +58,12 @@ Detailed requests, responses, auth, rate limits and failure modes: [`docs/VENUES
 
 Building blocks used from the Integration List: **Aquarius, Soroswap, Stellar Broker**.
 
+**Stellar Wallets Kit is a tranche 2 deliverable. It is planned, not built.** It is not in this
+repository and nothing that is built depends on it. Its job is the human path of the paid endpoint:
+connect a wallet in the browser and sign the x402 authorization from the page, where today the payer is a
+script (`scripts/x402-testnet-pay.mjs`). ESTIMATE about 12 h, after the mainnet facilitator is in place
+(tranche 1).
+
 What is integrated versus planned, in one line each: Aquarius and Stellar Broker are sampled live
 today and Soroswap since its first keyed cycle; reading pools directly from contracts is planned for
 all three and is the part of the budget that makes the numbers independent of any API operator.
@@ -177,7 +183,9 @@ oracle mark alone (which is the failure this system exists to prevent). Encoded 
 ## 6. x402 on Stellar: payment flow
 
 BUILT and proven on **testnet only**. Mainnet is tranche 1 of the grant and needs the owner's
-receiving account and an OpenZeppelin mainnet key; it is not configured and **UNTESTED**.
+receiving account and an OpenZeppelin mainnet key; it is not configured and **UNTESTED**. The in-browser
+wallet flow (Stellar Wallets Kit) is planned for tranche 2 and is not built; the only payer today is the
+testnet script.
 
 ```
 agent                         sounding.ochinimus.app             x402.org/facilitator (stellar:testnet)
