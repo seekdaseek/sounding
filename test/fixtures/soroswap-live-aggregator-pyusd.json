@@ -1,0 +1,75 @@
+{
+ "_capture": {
+  "date": "2026-10-25",
+  "endpoint": "POST https://api.soroswap.finance/quote?network=mainnet",
+  "http_status": 201,
+  "request": {
+   "assetIn": "PYUSD SAC",
+   "amount": "1000310000000",
+   "protocols": [
+    "soroswap",
+    "aqua",
+    "sushi",
+    "comet",
+    "sdex"
+   ]
+  },
+  "note": "live response, key not included"
+ },
+ "body": {
+  "assetIn": "CCCRWH6Q3FNP3I2I57BDLM5AFAT7O6OF6GKQOC6SSJNDAVRZ57SPHGU2",
+  "assetOut": "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75",
+  "tradeType": "EXACT_IN",
+  "amountIn": "1000310000000",
+  "amountOut": "998140056646",
+  "otherAmountThreshold": "993149356362",
+  "priceImpactPct": "0.00",
+  "platform": "aggregator",
+  "routePlan": [
+   {
+    "swapInfo": {
+     "protocol": "aqua",
+     "path": [
+      "CCCRWH6Q3FNP3I2I57BDLM5AFAT7O6OF6GKQOC6SSJNDAVRZ57SPHGU2",
+      "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75"
+     ]
+    },
+    "percent": "100.00"
+   }
+  ],
+  "rawTrade": {
+   "amountIn": "999309690000",
+   "amountOutMin": "993149356362",
+   "distribution": [
+    {
+     "protocol_id": "aqua",
+     "path": [
+      "CCCRWH6Q3FNP3I2I57BDLM5AFAT7O6OF6GKQOC6SSJNDAVRZ57SPHGU2",
+      "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75"
+     ],
+     "parts": 10,
+     "is_exact_in": true,
+     "poolIds": [
+      "CDMH535JSD224YXPET3B4SJOLXTQQ24GRSCWACGYBKSH2DKFJYWI7SUW"
+     ],
+     "poolHashes": [
+      "766a7450f7311b888ad3ae2f3bbe455d5507c308a9ed6353cc1b9b80e9372924"
+     ],
+     "hops": [
+      {
+       "poolId": "CDMH535JSD224YXPET3B4SJOLXTQQ24GRSCWACGYBKSH2DKFJYWI7SUW",
+       "protocol": "aqua",
+       "tokenIn": "CCCRWH6Q3FNP3I2I57BDLM5AFAT7O6OF6GKQOC6SSJNDAVRZ57SPHGU2",
+       "tokenOut": "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75",
+       "amountIn": "999309690000",
+       "amountOut": "998140056646",
+       "feeBps": 10,
+       "poolHash": "766a7450f7311b888ad3ae2f3bbe455d5507c308a9ed6353cc1b9b80e9372924"
+      }
+     ],
+     "share": "999309690000"
+    }
+   ]
+  }
+ }
+}

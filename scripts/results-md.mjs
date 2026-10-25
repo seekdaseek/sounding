@@ -27,14 +27,14 @@ for (const r of all("SELECT venue, status, COALESCE(fail_kind,'') k, COUNT(*) n 
 for (const [v, x] of Object.entries(byV).sort()) out.push(`| ${v} | ${f(x.ok)} | ${f(x.no_route)} | ${f(x.failed)} | ${Object.entries(x.k).map(([k, n]) => `${k}: ${n}`).join(', ') || '-'} |`);
 
 for (const size of [100000, 1000000]) {
-  out.push('', `### Exit cost at $${f(size)} (bps vs the cycle mark): median [p10 - p90] over all cycles`, '', '| asset | sdex_horizon | aquarius | broker | best-venue spread (median, bps) |', '|---|---|---|---|---|');
+  out.push('', `### Exit cost at $${f(size)} (bps vs the cycle mark): median [p10 - p90] over all cycles`, '', '| asset | sdex_horizon | aquarius | broker | soroswap_agg | spread (median, bps) |', '|---|---|---|---|---|---|');
   for (const a of assets) {
     const cells = [];
-    for (const v of ['sdex_horizon', 'aquarius', 'broker']) {
+    for (const v of ['sdex_horizon', 'aquarius', 'broker', 'soroswap_agg']) {
       const xs = all("SELECT bps FROM samples WHERE asset = ? AND size_usd = ? AND venue = ? AND status = 'ok'", a, size, v).map((r) => r.bps);
       cells.push(xs.length ? `${f(median(xs))} [${f(q(xs, 0.1))} - ${f(q(xs, 0.9))}] (n=${xs.length})` : 'n/a');
     }
-    const cyc = all("SELECT cycle_id, MAX(bps) hi, MIN(bps) lo, COUNT(*) c FROM samples WHERE asset = ? AND size_usd = ? AND status = 'ok' AND venue IN ('sdex_horizon','aquarius','broker') GROUP BY cycle_id HAVING c >= 2", a, size);
+    const cyc = all("SELECT cycle_id, MAX(bps) hi, MIN(bps) lo, COUNT(*) c FROM samples WHERE asset = ? AND size_usd = ? AND status = 'ok' AND venue IN ('sdex_horizon','aquarius','broker','soroswap_agg') GROUP BY cycle_id HAVING c >= 2", a, size);
     out.push(`| ${a} | ${cells.join(' | ')} | ${f(median(cyc.map((r) => r.hi - r.lo)))} |`);
   }
 }

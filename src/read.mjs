@@ -16,6 +16,16 @@ export function latestCycle(db, assetId) {
   return db.prepare('SELECT cycle_id, ts, mark, n_venues FROM marks WHERE asset = ? AND mark IS NOT NULL ORDER BY ts DESC LIMIT 1').get(assetId) || null;
 }
 
+/**
+ * The time a cycle's reading for one asset describes: the MEDIAN sample time of its rows. The newest row
+ * would flatter freshness (a keyed cycle spans about six minutes because Soroswap is paced at 1 req/s, and
+ * its rows land last); the oldest would overstate staleness. The median is where the bulk was measured.
+ */
+export function cycleTs(rows, fallback) {
+  const t = rows.map((r) => r.ts).filter(Number.isFinite).sort((a, b) => a - b);
+  return t.length ? t[t.length >> 1] : fallback;
+}
+
 export function cycleRows(db, cycleId, assetId) {
   return db.prepare('SELECT size_usd, units, venue, status, proceeds, bps, fail_kind, detail, ts FROM samples WHERE cycle_id = ? AND asset = ?').all(cycleId, assetId);
 }
@@ -103,7 +113,7 @@ export function exitReport(db, assetId, sizeUsd, nowMs, opts = {}) {
   const lc = latestCycle(db, assetId);
   if (!lc) return { asset: assetId, size_usd: sizeUsd, status: 'no_data', stale: true, published: { status: 'no_data', publishable: false, reasons: ['no cycle with a mark yet'] } };
   const rows = cycleRows(db, lc.cycle_id, assetId);
-  const ts = Math.max(...rows.map((r) => r.ts), lc.ts);
+  const ts = cycleTs(rows, lc.ts);
   const bound = staleBound(db, assetId, nowMs);
   const st = staleness(ts, nowMs, bound.boundS);
 
@@ -161,7 +171,7 @@ export function headline(db, assetId, sizeUsd, nowMs) {
   const lc = latestCycle(db, assetId); if (!lc) return null;
   const rows = cycleRows(db, lc.cycle_id, assetId);
   const venues = TOP_VENUES.map((v) => venueAtSize(rows, v, sizeUsd, lc.mark));
-  const ts = Math.max(...rows.map((r) => r.ts));
+  const ts = cycleTs(rows, lc.ts);
   return { asset: assetId, size_usd: sizeUsd, ts, age_s: Math.round((nowMs - ts) / 1000), mark: lc.mark, venues };
 }
 

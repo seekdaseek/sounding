@@ -109,17 +109,43 @@ test('soroswap: no key is a typed no_key failure and sends nothing', async () =>
   assert.equal(r.status, 'failed'); assert.equal(r.failure.kind, 'no_key'); assert.equal(f.calls.length, 0);
 });
 
-test('soroswap: request shape matches the docs; bearer key is sent; per-protocol venue name', async () => {
-  const f = fakeFetch(200, fx('soroswap-quote-DOCS-SHAPE.json'));
-  const r = await soroswap.quote({ asset: XLM, units: 5000 }, { fetch: f, apiKey: 'sk_test', protocols: ['aqua'] });
-  assert.equal(r.venue, 'soroswap_agg:aqua'); assert.equal(r.status, 'ok'); assert.equal(r.proceedsUsdc, 847.5153804);
-  assert.deepEqual(r.route.protocols_used, ['aqua']); assert.equal(r.route.platform, 'aggregator');
+const live = (n) => { const j = fx(n); return { status: j._capture.http_status, body: j.body }; };
+
+test('soroswap: LIVE sdex-platform capture (HTTP 201): proceeds, platform, 10 bps input fee; request matches the docs', async () => {
+  const c = live('soroswap-live-sdex-xlm-590k.json');
+  assert.equal(c.status, 201);
+  const f = fakeFetch(c.status, c.body);
+  const r = await soroswap.quote({ asset: XLM, units: 590000 }, { fetch: f, apiKey: 'sk_test' });
+  assert.equal(r.venue, 'soroswap_agg'); assert.equal(r.status, 'ok'); assert.equal(r.proceedsUsdc, 99344.7495968);
+  assert.equal(r.route.platform, 'sdex'); assert.deepEqual(r.route.protocols_used, ['sdex']); assert.equal(r.route.input_fee_bps, 10);
   assert.equal(f.calls[0].init.headers.authorization, 'Bearer sk_test');
   assert.match(f.calls[0].url, /quote\?network=mainnet/);
-  assert.deepEqual(JSON.parse(f.calls[0].init.body), { assetIn: XLM.sac, assetOut: util.USDC_SAC, amount: '50000000000', tradeType: 'EXACT_IN', protocols: ['aqua'] });
+  assert.deepEqual(JSON.parse(f.calls[0].init.body), { assetIn: XLM.sac, assetOut: util.USDC_SAC, amount: '5900000000000', tradeType: 'EXACT_IN', protocols: ['soroswap', 'aqua', 'sushi', 'comet', 'sdex'] });
 });
 
-test('soroswap: 403 is auth, a bare 500 is http_error, only a stated "no route" body is no_route', async () => {
+test('soroswap: LIVE aggregator-platform captures: venues read from hops, split routes, per-protocol venue name', async () => {
+  const pyusd = live('soroswap-live-aggregator-pyusd.json');
+  const r = await soroswap.quote({ asset: { ...XLM, id: 'PYUSD' }, units: 100031 }, { fetch: fakeFetch(pyusd.status, pyusd.body), apiKey: 'sk_x', protocols: ['aqua'] });
+  assert.equal(r.venue, 'soroswap_agg:aqua'); assert.equal(r.status, 'ok'); assert.equal(r.proceedsUsdc, 99814.0056646);
+  assert.equal(r.route.platform, 'aggregator'); assert.deepEqual(r.route.protocols_used, ['aqua']); assert.equal(r.route.input_fee_bps, 10);
+  const aqua = live('soroswap-live-aggregator-aqua-split.json'); // three split routes in one answer
+  const r2 = soroswap.parseQuote(aqua.body);
+  assert.equal(r2.status, 'ok'); assert.equal(r2.proceedsUsdc, 87885.9251562); assert.deepEqual(r2.route.protocols_used, ['aqua', 'sushi']); // routePlan names only the first hop (aqua); the hops show a sushi leg, as their docs warn
+  assert.equal(aqua.body.routePlan.length, 3);
+});
+
+test('soroswap: LIVE no-route is HTTP 400 "No path found" -> no_route; the same body on 403/500/429 is NOT a no-route', async () => {
+  const c = live('soroswap-live-no-path-comet.json');
+  assert.equal(c.status, 400);
+  const mk = (st, b = c.body) => soroswap.quote({ asset: XLM, units: 1 }, { fetch: fakeFetch(st, b), apiKey: 'sk_x', protocols: ['comet'] });
+  const nr = await mk(400); assert.equal(nr.status, 'no_route'); assert.equal(nr.venue, 'soroswap_agg:comet'); assert.match(nr.detail, /No path found/);
+  assert.equal((await mk(403)).failure.kind, 'auth');
+  assert.equal((await mk(500)).failure.kind, 'http_error');
+  assert.equal((await mk(429)).failure.kind, 'rate_limited');
+  assert.equal((await mk(400, { message: 'Invalid assetIn' })).failure.kind, 'bad_request'); // a 400 that is not a no-route answer
+});
+
+test('soroswap: 403 is auth, a bare 500 is http_error, a stated "no route" body on 404 is no_route', async () => {
   const mk = (s, b) => soroswap.quote({ asset: XLM, units: 1 }, { fetch: fakeFetch(s, b), apiKey: 'sk_x' });
   assert.equal((await mk(403, { message: 'Forbidden resource' })).failure.kind, 'auth');
   assert.equal((await mk(500, 'boom')).failure.kind, 'http_error');

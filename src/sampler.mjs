@@ -37,10 +37,13 @@ export function tasksFor(req, ctx) {
   return t;
 }
 
+/** Latency and timestamp are taken INSIDE the lane, around the request itself: queue wait is not latency. */
 async function timed(lanes, task) {
-  const t0 = Date.now();
-  const r = await lanes[task.lane].run(task.run);
-  return { ...r, ms: Date.now() - t0, tsMs: Date.now() };
+  return lanes[task.lane].run(async () => {
+    const t0 = Date.now();
+    const r = await task.run();
+    return { ...r, ms: Date.now() - t0, tsMs: Date.now() };
+  });
 }
 
 export async function quoteAll(req, ctx) {

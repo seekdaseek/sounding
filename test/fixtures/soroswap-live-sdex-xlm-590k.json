@@ -1,0 +1,51 @@
+{
+ "_capture": {
+  "date": "2026-10-25",
+  "endpoint": "POST https://api.soroswap.finance/quote?network=mainnet",
+  "http_status": 201,
+  "request": {
+   "assetIn": "CAS3J7GYLGXMF6TDJBBYYSE3HQ6BBSMLNUQ34T6TZMYMW2EVH34XOWMA",
+   "amount": "5900000000000",
+   "protocols": [
+    "soroswap",
+    "aqua",
+    "sushi",
+    "comet",
+    "sdex"
+   ]
+  },
+  "note": "live response, key not included"
+ },
+ "body": {
+  "assetIn": "CAS3J7GYLGXMF6TDJBBYYSE3HQ6BBSMLNUQ34T6TZMYMW2EVH34XOWMA",
+  "assetOut": "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75",
+  "amountIn": "5900000000000",
+  "amountOut": "993447495968",
+  "otherAmountThreshold": "988480258488",
+  "priceImpactPct": "4.27",
+  "tradeType": "EXACT_IN",
+  "platform": "sdex",
+  "rawTrade": {
+   "source_asset_type": "native",
+   "source_amount": "589410.0000000",
+   "destination_asset_type": "credit_alphanum4",
+   "destination_asset_code": "USDC",
+   "destination_asset_issuer": "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+   "destination_amount": "99344.7495968",
+   "path": [],
+   "min_destination_amount": "98848.0258488"
+  },
+  "routePlan": [
+   {
+    "swapInfo": {
+     "protocol": "sdex",
+     "path": [
+      "CAS3J7GYLGXMF6TDJBBYYSE3HQ6BBSMLNUQ34T6TZMYMW2EVH34XOWMA",
+      "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75"
+     ]
+    },
+    "percent": "100"
+   }
+  ]
+ }
+}

@@ -146,3 +146,12 @@ test('depth drift shortens the stale bound even when the mark never moves (the m
   const a = staleBound(steady, 'A', T0 + 31 * 600_000), b = staleBound(pulled, 'A', T0 + 31 * 600_000);
   assert.ok(b.boundS < a.boundS, `pulled ${b.boundS} < steady ${a.boundS}`);
 });
+
+test('ts is the median sample time of the cycle, so a late-landing slow venue cannot make a stale reading look fresh', () => {
+  const db = openStore(':memory:');
+  cycle(db, 1, T0, GOOD);
+  // push ONE venue's rows six minutes later, as a rate-limited Soroswap lane does
+  db.prepare("UPDATE samples SET ts = ts + 360000 WHERE venue = 'soroswap_agg:soroswap'").run();
+  const r = exitReport(db, 'A', 100000, T0 + 400_000);
+  assert.ok(r.age_s >= 399 && r.age_s <= 401, `age_s ${r.age_s} should be ~400 (median ts = T0), not 40 (newest row)`);
+});

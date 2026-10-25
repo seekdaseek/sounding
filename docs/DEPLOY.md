@@ -47,7 +47,7 @@ replaces any old `SOROSWAP_API_KEY=` line, keeps the other variables, restarts t
 printf 'Paste key: '; read -rs K; echo; case "$K" in sk_??????????*) printf '%s' "$K" | ssh -o BatchMode=yes solwatch 'umask 077; K=$(cat); F=/opt/sounding/.env; touch "$F"; grep -v "^SOROSWAP_API_KEY=" "$F" > "$F.new"; printf "SOROSWAP_API_KEY=%s\n" "$K" >> "$F.new"; mv "$F.new" "$F"; chmod 600 "$F"; echo "key saved, length ${#K}"; sh /opt/sounding/ops/pm2-start.sh' ;; *) echo "that does not look like an sk_ key; nothing written" ;; esac; unset K
 ```
 
-The first cycle with a key takes about 5 minutes (1 request/s, 6 Soroswap calls per asset and size).
+A keyed cycle takes about 6 minutes (measured: 354 s; 1 request/s, 6 Soroswap calls per asset and size).
 
 ## 3. Start
 
@@ -101,7 +101,7 @@ pm2 jlist | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{for
 ```
 
 The first sample lands ~50 seconds after the sampler starts; the first cycle takes about 45 s with
-the three keyless venues and about 5 minutes once Soroswap (1 request/s) is added.
+the three keyless venues and about 6 minutes once Soroswap (1 request/s) is added.
 
 ## 6. Backup and restore
 

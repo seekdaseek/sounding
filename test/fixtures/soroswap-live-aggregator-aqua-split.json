@@ -1,0 +1,163 @@
+{
+ "_capture": {
+  "date": "2026-10-25",
+  "endpoint": "POST https://api.soroswap.finance/quote?network=mainnet",
+  "http_status": 201,
+  "request": {
+   "assetIn": "AQUA SAC",
+   "amount": "3510000000000000",
+   "protocols": [
+    "soroswap",
+    "aqua",
+    "sushi",
+    "comet",
+    "sdex"
+   ]
+  },
+  "note": "live response, key not included"
+ },
+ "body": {
+  "assetIn": "CAUIKL3IYGMERDRUN6YSCLWVAKIFG5Q4YJHUKM4S4NJZQIA3BAS6OJPK",
+  "assetOut": "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75",
+  "tradeType": "EXACT_IN",
+  "amountIn": "3510000000000000",
+  "amountOut": "878859251562",
+  "otherAmountThreshold": "874464955304",
+  "priceImpactPct": "12.25",
+  "platform": "aggregator",
+  "routePlan": [
+   {
+    "swapInfo": {
+     "protocol": "aqua",
+     "path": [
+      "CAUIKL3IYGMERDRUN6YSCLWVAKIFG5Q4YJHUKM4S4NJZQIA3BAS6OJPK",
+      "CAS3J7GYLGXMF6TDJBBYYSE3HQ6BBSMLNUQ34T6TZMYMW2EVH34XOWMA",
+      "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75"
+     ]
+    },
+    "percent": "40.00"
+   },
+   {
+    "swapInfo": {
+     "protocol": "aqua",
+     "path": [
+      "CAUIKL3IYGMERDRUN6YSCLWVAKIFG5Q4YJHUKM4S4NJZQIA3BAS6OJPK",
+      "CAS3J7GYLGXMF6TDJBBYYSE3HQ6BBSMLNUQ34T6TZMYMW2EVH34XOWMA",
+      "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75"
+     ]
+    },
+    "percent": "40.00"
+   },
+   {
+    "swapInfo": {
+     "protocol": "aqua",
+     "path": [
+      "CAUIKL3IYGMERDRUN6YSCLWVAKIFG5Q4YJHUKM4S4NJZQIA3BAS6OJPK",
+      "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75"
+     ]
+    },
+    "percent": "20.00"
+   }
+  ],
+  "rawTrade": {
+   "amountIn": "3506490000000000",
+   "amountOutMin": "874464955304",
+   "distribution": [
+    {
+     "protocol_id": "aqua",
+     "path": [
+      "CAUIKL3IYGMERDRUN6YSCLWVAKIFG5Q4YJHUKM4S4NJZQIA3BAS6OJPK",
+      "CAS3J7GYLGXMF6TDJBBYYSE3HQ6BBSMLNUQ34T6TZMYMW2EVH34XOWMA",
+      "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75"
+     ],
+     "parts": 4,
+     "is_exact_in": true,
+     "poolIds": [
+      "CCY2PXGMKNQHO7WNYXEWX76L2C5BH3JUW3RCATGUYKY7QQTRILBZIFWV",
+      "CA6PUJLBYKZKUEKLZJMKBZLEKP2OTHANDEOWSFF44FTSYLKQPIICCJBE"
+     ],
+     "hops": [
+      {
+       "poolId": "CCY2PXGMKNQHO7WNYXEWX76L2C5BH3JUW3RCATGUYKY7QQTRILBZIFWV",
+       "protocol": "aqua",
+       "tokenIn": "CAUIKL3IYGMERDRUN6YSCLWVAKIFG5Q4YJHUKM4S4NJZQIA3BAS6OJPK",
+       "tokenOut": "CAS3J7GYLGXMF6TDJBBYYSE3HQ6BBSMLNUQ34T6TZMYMW2EVH34XOWMA",
+       "amountIn": "1402596000000000",
+       "amountOut": "2232366162929",
+       "feeBps": 30
+      },
+      {
+       "poolId": "CA6PUJLBYKZKUEKLZJMKBZLEKP2OTHANDEOWSFF44FTSYLKQPIICCJBE",
+       "protocol": "aqua",
+       "tokenIn": "CAS3J7GYLGXMF6TDJBBYYSE3HQ6BBSMLNUQ34T6TZMYMW2EVH34XOWMA",
+       "tokenOut": "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75",
+       "amountIn": "2232366162929",
+       "amountOut": "369487677212",
+       "feeBps": 10
+      }
+     ],
+     "share": "1402596000000000"
+    },
+    {
+     "protocol_id": "aqua",
+     "path": [
+      "CAUIKL3IYGMERDRUN6YSCLWVAKIFG5Q4YJHUKM4S4NJZQIA3BAS6OJPK",
+      "CAS3J7GYLGXMF6TDJBBYYSE3HQ6BBSMLNUQ34T6TZMYMW2EVH34XOWMA",
+      "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75"
+     ],
+     "parts": 4,
+     "is_exact_in": true,
+     "poolIds": [
+      "CCY2PXGMKNQHO7WNYXEWX76L2C5BH3JUW3RCATGUYKY7QQTRILBZIFWV",
+      "CCR2CH4GQVCZHG7CHFVMNANCK45CU5DVKXZIIITDZQAU3CEJZ7RQH2MQ"
+     ],
+     "hops": [
+      {
+       "poolId": "CCY2PXGMKNQHO7WNYXEWX76L2C5BH3JUW3RCATGUYKY7QQTRILBZIFWV",
+       "protocol": "aqua",
+       "tokenIn": "CAUIKL3IYGMERDRUN6YSCLWVAKIFG5Q4YJHUKM4S4NJZQIA3BAS6OJPK",
+       "tokenOut": "CAS3J7GYLGXMF6TDJBBYYSE3HQ6BBSMLNUQ34T6TZMYMW2EVH34XOWMA",
+       "amountIn": "1402596000000000",
+       "amountOut": "1993112833911",
+       "feeBps": 30
+      },
+      {
+       "poolId": "CCR2CH4GQVCZHG7CHFVMNANCK45CU5DVKXZIIITDZQAU3CEJZ7RQH2MQ",
+       "protocol": "sushi",
+       "tokenIn": "CAS3J7GYLGXMF6TDJBBYYSE3HQ6BBSMLNUQ34T6TZMYMW2EVH34XOWMA",
+       "tokenOut": "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75",
+       "amountIn": "1993112833911",
+       "amountOut": "325425296327",
+       "feeBps": 30
+      }
+     ],
+     "share": "1402596000000000"
+    },
+    {
+     "protocol_id": "aqua",
+     "path": [
+      "CAUIKL3IYGMERDRUN6YSCLWVAKIFG5Q4YJHUKM4S4NJZQIA3BAS6OJPK",
+      "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75"
+     ],
+     "parts": 2,
+     "is_exact_in": true,
+     "poolIds": [
+      "CA6GAFOJCW4MGQQBUCQUSA3CLIH25G4SNKB2JHYKZCVWZTNW5VXMSC4O"
+     ],
+     "hops": [
+      {
+       "poolId": "CA6GAFOJCW4MGQQBUCQUSA3CLIH25G4SNKB2JHYKZCVWZTNW5VXMSC4O",
+       "protocol": "aqua",
+       "tokenIn": "CAUIKL3IYGMERDRUN6YSCLWVAKIFG5Q4YJHUKM4S4NJZQIA3BAS6OJPK",
+       "tokenOut": "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75",
+       "amountIn": "701298000000000",
+       "amountOut": "183946278023",
+       "feeBps": 30
+      }
+     ],
+     "share": "701298000000000"
+    }
+   ]
+  }
+ }
+}

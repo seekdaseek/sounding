@@ -52,14 +52,14 @@ Detailed requests, responses, auth, rate limits and failure modes: [`docs/VENUES
 | venue | Integration List block? | integration | state | hours |
 |---|---|---|---|---|
 | Aquarius | **yes** (List estimate: under 1 day) | `POST /api/external/v2/find-path/`, no key. Adapter `src/venues/aquarius.mjs`. | BUILT, LIVE, sampled every 10 min | List estimate <1 day. Read adapter, fixtures and tests are done. Remaining ESTIMATE ~8 h: read pool reserves straight from the pool contracts over Soroban RPC to cross-check the API without trusting it. |
-| Soroswap | **yes** (List estimate: 1-2 weeks) | `POST api.soroswap.finance/quote`, Bearer key (free plan, 1 req/s). Whole aggregate plus one call per protocol (`soroswap`, `aqua`, `sushi`, `comet`, `sdex`). Adapter `src/venues/soroswap.mjs`. | adapter BUILT and unit-tested against the documented shape; **no live quote yet, key pending (UNTESTED live)** | ESTIMATE 40-60 h total: key and live capture (1 h), per-pool reads for the independent-depth set (Soroswap, Sushi V3, Comet pools) (20 h), onchain aggregator cross-check (20 h), hardening (10 h). |
+| Soroswap | **yes** (List estimate: 1-2 weeks) | `POST api.soroswap.finance/quote`, Bearer key (free plan, 1 req/s). Whole aggregate plus one call per protocol (`soroswap`, `aqua`, `sushi`, `comet`, `sdex`). Adapter `src/venues/soroswap.mjs`. | BUILT, LIVE since 2026-10-25: the first keyed cycle (18:54-19:00Z, 354 s) returned 360 rows, 40 aggregate quotes `ok`; tests use live captures | List estimate 1-2 weeks. Read adapter, key and live captures are done. Remaining ESTIMATE ~50 h: per-pool reads for the independent-depth set (Soroswap, Sushi V3, Comet pools) (20 h), onchain aggregator cross-check (20 h), hardening (10 h). |
 | Stellar Broker | **yes** (List estimate: 1-5 days) | `GET api.stellar.broker/quote` (what `@stellar-broker/client` `estimateSwap` calls), no key for estimates. Adapter `src/venues/broker.mjs`. | BUILT, LIVE, sampled every 10 min | List estimate 1-5 days. Read adapter done. Remaining ESTIMATE ~12 h: partner key for a stated rate limit, stream quotes over the client WebSocket for faster disagreement detection, track the audited router's contract id. |
 | SDEX via Horizon | no (public API) | `GET /paths/strict-send`, no key; `GET /order_book` for the closed-form book. Adapter `src/venues/horizon.mjs`, math `src/depth.mjs`. | BUILT, LIVE | done |
 
 Building blocks used from the Integration List: **Aquarius, Soroswap, Stellar Broker**.
 
 What is integrated versus planned, in one line each: Aquarius and Stellar Broker are sampled live
-today; Soroswap is wired and waiting for a key; reading pools directly from contracts is planned for
+today and Soroswap since its first keyed cycle; reading pools directly from contracts is planned for
 all three and is the part of the budget that makes the numbers independent of any API operator.
 
 Every adapter returns a three-way verdict, `ok`, `no_route` or `failed(kind)`. A failure is stored
@@ -153,8 +153,9 @@ the raw per-venue data, so a consumer can see why.
 
 ## 5. Staleness bounds and the consumer rule
 
-Every report carries `ts`, `age_s`, `stale`, `stale_bound_s` and `stale_bound_basis`. It is stale when
-`age_s` exceeds the bound.
+Every report carries `ts`, `age_s`, `stale`, `stale_bound_s` and `stale_bound_basis`. `ts` is the median
+sample time of the asset's rows in the latest cycle (the newest row would flatter freshness when a
+keyed cycle spans six minutes). It is stale when `age_s` exceeds the bound.
 
 **Per-asset bound from measured drift** (`staleBoundFromDrift`, series from `driftSeries` in
 `src/read.mjs`). The drifting quantity is the best-exit price at $100k per cycle, `mark x (1 - best
@@ -248,7 +249,7 @@ propose_admin(new) / accept_admin()                  two-step admin handover
   the operator.
 
 Plan: testnet deployment first (ESTIMATE 40 h including tests with the Soroban test harness), an
-external review of the contract before any mainnet write, then mainnet with the lowest-risk assets.
+unpaid read-through of the contract by an outside Soroban developer before any mainnet write (the budget carries no audit line), then mainnet with the lowest-risk assets.
 
 ## 8. Threat model (STRIDE)
 
@@ -329,7 +330,7 @@ Who: the maintainer (a single operator; there is no co-maintainer, section 11). 
 (hold, never raise) applies. To recover: `ssh <box>`; `pm2 jlist`; `sh /opt/sounding/ops/pm2-start.sh`;
 `curl /healthz`. If the box is lost: new box, `docs/DEPLOY.md` sections 1-5, restore the latest
 `sounding-*.db` backup or start empty (the CSV history is public). A fresh reading appears after one
-cycle (about 45 s with three venues, about 5 minutes once Soroswap is added).
+cycle (about 45 s with three venues, about 6 minutes once Soroswap is added).
 
 **Bad data.** Offchain: a venue's parse failure or an implausible quote becomes a typed failure, not
 a number. Onchain (DESIGN): an out-of-band publish is rejected by the contract; a wrong value that
@@ -376,20 +377,20 @@ every table is [`docs/RESULTS.md`](docs/RESULTS.md). The live equivalents are `G
 `GET /v1/history.csv`. Headline as of the timestamp in `docs/RESULTS.md`:
 
 <!-- RESULTS:BEGIN -->
-**1,120 samples** in **7 cycles** (one per 10 minutes) over 0.0 days, 10 assets x 4 sizes x 4 venues, first sample 2026-10-25T17:56:06Z, latest 2026-10-25T18:43:04Z. 0 venue answers failed for a reason other than a missing Soroswap key, each stored as a typed row and none read as zero liquidity; 280 rows are the Soroswap venue recording `no_key`.
+**2,000 samples** of live Stellar exit liquidity, and one number: selling **$100,000 of XLM** costs **37 bps** at the best venue (Stellar Broker) and **326 bps** at the worst (Aquarius), median over 10 cycles. Data: 10 assets x 4 sizes x 4 venues, one cycle per 10 minutes, 2026-10-25T17:56:06Z to 2026-10-25T19:10:56Z. 0 venue answers failed for a reason other than a missing Soroswap key; each is a typed row and none is read as zero liquidity (320 rows are the Soroswap venue recording `no_key` before its key was installed).
 
-Selling **$100,000** of the asset into USDC, median cost in bps over 7 cycles:
+Selling **$100,000** of the asset into USDC, median cost in bps over all cycles (the Soroswap column only counts cycles since its key was installed):
 
-| asset | SDEX (Horizon paths) | Aquarius | Stellar Broker | spread between venues |
-|---|---:|---:|---:|---:|
-| XLM | 38 | 323 | 36 | 287 |
-| EURC | 76 | 6,106 | 49 | 6,057 |
-| USTRY | 6 | 879 | 6 | 872 |
-| PYUSD | 408 | 9 | 214 | 400 |
-| ETH | 7,367 | 5,970 | 3,840 | 3,527 |
-| BTC | 3,588 | 6,506 | 2,871 | 3,635 |
+| asset | SDEX (Horizon paths) | Aquarius | Stellar Broker | Soroswap aggregator | spread between venues |
+|---|---:|---:|---:|---:|---:|
+| XLM | 37 | 326 | 37 | 55 | 290 |
+| EURC | 76 | 6,107 | 49 | 82 | 6,058 |
+| USTRY | 6 | 879 | 6 | 11 | 872 |
+| PYUSD | 407 | 9 | 214 | 14 | 399 |
+| ETH | 7,368 | 5,970 | 3,843 | 4,935 | 3,525 |
+| BTC | 3,589 | 6,506 | 2,872 | 6,913 | 4,041 |
 
-(Soroswap is wired but has not yet returned a live quote; see "What is honest".)
+The Soroswap aggregator is not best-of and carries a 10 bps input fee (`docs/VENUES.md` section 4).
 
 Full tables (per-venue answers, cost at $100k and $1M with spread, safe sizes by method, stale bounds): [`docs/RESULTS.md`](docs/RESULTS.md).
 <!-- RESULTS:END -->

@@ -16,7 +16,7 @@ Repo: <https://github.com/seekdaseek/sounding> (MIT).
 | A4 | The measurement count is real | `curl -s $B/v1/stats`; the same rows are in `$B/v1/history.csv` (CC BY 4.0) (H) | `samples`, `cycles`, `first_ts`, `last_ts`, failure counts per venue |
 | A5 | Numbers can be recomputed from the public history | download the CSV, filter `asset=XLM,size_usd=100000,venue=broker,status=ok`, take `cost_bps` | matches the page within one cycle |
 | A6 | Three venues return live quotes | run the `curl` lines in [`VENUES.md`](VENUES.md) for Horizon, Aquarius, Stellar Broker and compare to `venues[]` (H) | within the usual few-minute drift |
-| A7 | **Soroswap is not yet live-quoting (disclosed)** | `curl -s "$B/v1/exit?asset=XLM&size=100000"` -> the `soroswap_agg` row | `status: failed`, `failure_kind: no_key`. It is wired and unit-tested; it needs a free key (`VENUES.md` section 4) |
+| A7 | Soroswap is live-quoting, with its own fee and its own limits | `curl -s "$B/v1/exit?asset=XLM&size=100000"` -> the `soroswap_agg` row (H) | `status: ok` (HTTP 201 upstream; first keyed cycle 2026-10-25 18:54-19:00Z); its cost includes a 10 bps input fee; per-protocol rows `soroswap_agg:aqua`, `:sdex`, ... in `venues[]`; details in `VENUES.md` section 4 |
 
 ## B. Nothing requires Blend
 

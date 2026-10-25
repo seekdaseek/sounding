@@ -148,3 +148,11 @@ test('the marks row is written after the asset\'s samples, so a reader never see
   const m = db.prepare('SELECT ts FROM marks').get().ts, last = db.prepare("SELECT MAX(ts) t FROM samples WHERE venue != 'engine'").get().t;
   assert.ok(m >= last, 'mark is not older than the newest sample');
 });
+
+test('latency is measured around the request, not the lane queue wait', async () => {
+  const db = openStore(':memory:');
+  const lanes = lanesFast(); for (const k of Object.keys(lanes)) lanes[k].minGapMs = 120; // force queueing
+  await runCycle(db, uni, { lanes, apiKey: '', fetch: fakeNet() });
+  const worst = db.prepare("SELECT MAX(ms) m FROM samples WHERE venue != 'engine'").get().m;
+  assert.ok(worst < 100, `fake network answers instantly, but recorded latency was ${worst} ms (it includes queue wait)`);
+});

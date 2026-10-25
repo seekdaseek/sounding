@@ -22,7 +22,7 @@ A `failed` row is never zero liquidity. The mark, the best exit, and every safe 
 | `sdex_horizon` | classic order books + classic pools, multi-hop | Horizon `GET /paths/strict-send` | none | live, sampled every 10 min |
 | `aquarius` | Aquarius AMM path finder (Soroban pools) | `POST amm-api.aqua.network/api/external/v2/find-path/` | none | live, sampled every 10 min |
 | `broker` | Stellar Broker router estimate | `GET api.stellar.broker/quote` | none for estimates | live, sampled every 10 min |
-| `soroswap_agg` (+ `:soroswap` `:aqua` `:sushi` `:comet` `:sdex`) | Soroswap aggregator, whole and per protocol | `POST api.soroswap.finance/quote?network=mainnet` | `Authorization: Bearer sk_...` | adapter written and unit-tested; **no live quote yet, waiting for a key** (rows are typed `no_key`) |
+| `soroswap_agg` (+ `:soroswap` `:aqua` `:sushi` `:comet` `:sdex`) | Soroswap aggregator, whole and per protocol | `POST api.soroswap.finance/quote?network=mainnet` | `Authorization: Bearer sk_...` | **live since 2026-10-25** (first keyed cycle returned 360 rows, 40 aggregate quotes `ok`); tests use live captures |
 
 ---
 
@@ -113,21 +113,33 @@ GET /quote?sellingAsset=XLM&buyingAsset=USDC-GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2K
 
 ## 4. Soroswap aggregator: `soroswap_agg`
 
+All of this section was observed live on 2026-10-25 with a free-plan key (the key is never printed
+or committed; it lives only in `/opt/sounding/.env`, mode 600).
+
 - **URL:** `POST https://api.soroswap.finance/quote?network=mainnet` (docs: `docs.soroswap.finance/api/quickstart.md`, `/api-reference/quote/quote.md`).
-- **Auth:** `Authorization: Bearer sk_...`. A missing, malformed or revoked key returns **403, not 401** (their quickstart). Registration is at `api.soroswap.finance/register`; the free plan needs no approval.
-- **Rate limit (docs):** free plan 1 request/s sustained, burst 5 (`GET /rate-limits/tiers`, which needs no key, returned exactly that on 2026-10-25). 429s carry `Retry-After`. The sampler paces this venue at 1,150 ms.
-- **Request (from the docs; shape implemented and unit-tested):**
+- **Auth:** `Authorization: Bearer sk_...`. A missing, malformed or revoked key returns **403, not 401** (their quickstart; I saw 403 on `/quote` and `/protocols` without a key). Registration is at `api.soroswap.finance/register`; the free plan needs no approval.
+- **Rate limit:** free plan 1 request/s sustained, burst 5 (`GET /rate-limits/tiers`, no key needed). Live responses carry `x-ratelimit-limit: 5`, `x-ratelimit-remaining: 4`, `x-ratelimit-reset: 1`. The sampler paces this venue at 1,150 ms; across the first keyed cycle (240 calls to this venue) there was **no 429**. Cost of that pacing: a keyed cycle takes **354 s** against 45 s without the key.
+- **Request (real):**
 
 ```json
-{ "assetIn": "CAS3J7GY...", "assetOut": "CCW67TSZ...", "amount": "50000000000",
+{ "assetIn": "CAS3J7GY...", "assetOut": "CCW67TSZ...", "amount": "5900000000000",
   "tradeType": "EXACT_IN", "protocols": ["soroswap","aqua","sushi","comet","sdex"] }
 ```
 
-- **Response fields used:** `amountOut` (stroops string), `platform` (`router | aggregator | sdex`), `rawTrade.distribution[].hops[].protocol` and `routePlan[].swapInfo.protocol` for which venues carried the route. `test/fixtures/soroswap-quote-DOCS-SHAPE.json` is **hand-built from the docs schema, not a live capture**.
-- **Per-protocol depth:** with a key the sampler also calls the endpoint once per protocol (`protocols:["aqua"]`, `["sdex"]`, ...), stored as `soroswap_agg:aqua` etc., so the per-venue depth behind the aggregate is visible. The aggregate and the per-protocol rows overlap with `aquarius` and `sdex_horizon`; the share cap (ARCHITECTURE section 4) counts only independent pools.
-- **Observed live without a key (real):** `POST /quote` -> HTTP 403 `{"message":"Forbidden resource","error":"Forbidden","statusCode":403}`; `GET /protocols` -> the same 403.
-- **No route:** the docs do not show the error body. The adapter treats a non-200 as `failed` and promotes it to `no_route` only when the body text says so (`no route`, `insufficient liquidity`, ...) and the status is not 401/403. **UNTESTED against a live key.**
-- **State:** until `SOROSWAP_API_KEY` is in `/opt/sounding/.env`, the sampler stores one typed `failed/no_key` row per (asset, size) for this venue, and `/v1/exit` shows it as `no answer (no_key) - not zero liquidity`.
+- **Success is HTTP 201, not 200.** Response (real, 590,000 XLM, trimmed from `test/fixtures/soroswap-live-sdex-xlm-590k.json`):
+
+```json
+{ "amountIn": "5900000000000", "amountOut": "993447495968", "priceImpactPct": "4.27", "platform": "sdex",
+  "rawTrade": { "source_amount": "589410.0000000", "destination_amount": "99344.7495968", "path": [] },
+  "routePlan": [ { "swapInfo": { "protocol": "sdex", "path": ["CAS3...", "CCW6..."] }, "percent": "100" } ] }
+```
+
+- **10 bps are deducted from the input before routing** on every route: `source_amount` 589,410 of 590,000 above; on the aggregator platform `rawTrade.amountIn` 999,309,690,000 of 1,000,310,000,000 (PYUSD). That is a real cost to a seller who executes through Soroswap, so it stays inside our cost figure, and the adapter stores it as `input_fee_bps` (observed 10.0). It is why Soroswap is about 10 bps dearer than the same pool reached directly.
+- **`platform`** is `sdex` when the best leg is the classic book (XLM in the 590,000 capture) and `aggregator` for Soroban routes (PYUSD via Aquarius; AQUA split across three routes). `routePlan[].swapInfo.protocol` names **only the first hop**; the real venues are in `rawTrade.distribution[].hops[].protocol`, exactly as their docs warn (the AQUA capture is `aqua` in the plan and `aqua` + `sushi` in the hops; the adapter unions both).
+- **The aggregate is not best-of, and its `sdex` leg is the direct order book only.** Cycle 10, $100k, cost in bps: AQUA aggregate 1,211 vs Horizon multi-hop 228 (Soroswap `sdex` sub-quote 7,902); yXLM 400 vs 51; XRP 5,969 vs 949; BTC 6,912 vs 3,590; XLM 53 vs 32 (roughly the 10 bps fee plus roughly 10 bps from the direct-book-only path). Do not read `soroswap_agg` as "the best of everything"; read it as "what Soroswap's API would give you".
+- **No route is HTTP 400** with `{"title":"No path found","detail":"No path found","extra":{},"error":"Quote Failed"}` (real). Stored as `no_route`. Cycle 10 saw it for `comet` on all 40 (asset, size) pairs, `sushi` on 34 of 40 and `soroswap` on 8 of 40. A 400 with any other message (e.g. a bad asset) is `bad_request`; 403/429/5xx are never read as no-route.
+- **Per-protocol depth:** the sampler also calls the endpoint once per protocol (`protocols:["aqua"]`, `["sdex"]`, ...), stored as `soroswap_agg:aqua` etc. These overlap with `aquarius` and `sdex_horizon`; the share cap (ARCHITECTURE section 4) counts only independent pools (`soroswap`, `sushi`, `comet` sub-venues, `sdex_horizon`, `aquarius`).
+- **Latency note:** the stored `ms` of samples written before commit "Measure latency around the request" included lane queue wait (a median of 81 s for this venue). New rows measure the request only. `ms` is not exported in `history.csv`.
 
 ---
 
@@ -136,4 +148,4 @@ GET /quote?sellingAsset=XLM&buyingAsset=USDC-GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2K
 Live counts are in `GET /v1/stats` (`venues.<id>.failures_by_kind`) and in `GET /v1/history.csv`
 (`fail_kind`). The per-venue table of `ok` / `no_route` / `failed` answers, with failures by kind,
 is the first table in [`RESULTS.md`](RESULTS.md) ("Answers by venue"), regenerated from the
-production database. `no_key` on `soroswap_agg` is a configuration state, not an outage.
+production database. `no_key` on `soroswap_agg` (rows before the key was installed at 18:54Z on 2026-10-25) is a configuration state, not an outage.

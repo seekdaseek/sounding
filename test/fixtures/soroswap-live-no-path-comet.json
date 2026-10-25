@@ -1,0 +1,21 @@
+{
+ "_capture": {
+  "date": "2026-10-25",
+  "endpoint": "POST https://api.soroswap.finance/quote?network=mainnet",
+  "http_status": 400,
+  "request": {
+   "assetIn": "CAS3J7GYLGXMF6TDJBBYYSE3HQ6BBSMLNUQ34T6TZMYMW2EVH34XOWMA",
+   "amount": "10000000000",
+   "protocols": [
+    "comet"
+   ]
+  },
+  "note": "live response, key not included"
+ },
+ "body": {
+  "title": "No path found",
+  "detail": "No path found",
+  "extra": {},
+  "error": "Quote Failed"
+ }
+}

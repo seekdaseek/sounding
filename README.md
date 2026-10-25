@@ -14,7 +14,7 @@ stays inside 50, 100, 200 and 500 bps, or says plainly that it cannot be trusted
 - Design, threat model, runbook: [`ARCHITECTURE.md`](ARCHITECTURE.md). Every claim mapped to a link or tx:
   [`docs/JUDGE_GUIDE.md`](docs/JUDGE_GUIDE.md)
 
-**Headline count:** <!-- HEADLINE:BEGIN --> **1,120 samples** in **7 cycles** (one per 10 minutes) over 0.0 days, 10 assets x 4 sizes x 4 venues, first sample 2026-10-25T17:56:06Z, latest 2026-10-25T18:43:04Z. 0 venue answers failed for a reason other than a missing Soroswap key, each stored as a typed row and none read as zero liquidity; 280 rows are the Soroswap venue recording `no_key`. <!-- HEADLINE:END -->
+**Headline count:** <!-- HEADLINE:BEGIN --> **2,000 samples** of live Stellar exit liquidity, and one number: selling **$100,000 of XLM** costs **37 bps** at the best venue (Stellar Broker) and **326 bps** at the worst (Aquarius), median over 10 cycles. Data: 10 assets x 4 sizes x 4 venues, one cycle per 10 minutes, 2026-10-25T17:56:06Z to 2026-10-25T19:10:56Z. 0 venue answers failed for a reason other than a missing Soroswap key; each is a typed row and none is read as zero liquidity (320 rows are the Soroswap venue recording `no_key` before its key was installed). <!-- HEADLINE:END -->
 The live count is always `curl -s https://sounding.ochinimus.app/v1/stats`.
 
 ## What it found
@@ -22,18 +22,18 @@ The live count is always `curl -s https://sounding.ochinimus.app/v1/stats`.
 Same asset, same cycle, very different exits (cost in bps against the cycle's mark; 100 bps = 1%):
 
 <!-- FINDINGS:BEGIN -->
-Selling **$100,000** of the asset into USDC, median cost in bps over 7 cycles:
+Selling **$100,000** of the asset into USDC, median cost in bps over all cycles (the Soroswap column only counts cycles since its key was installed):
 
-| asset | SDEX (Horizon paths) | Aquarius | Stellar Broker | spread between venues |
-|---|---:|---:|---:|---:|
-| XLM | 38 | 323 | 36 | 287 |
-| EURC | 76 | 6,106 | 49 | 6,057 |
-| USTRY | 6 | 879 | 6 | 872 |
-| PYUSD | 408 | 9 | 214 | 400 |
-| ETH | 7,367 | 5,970 | 3,840 | 3,527 |
-| BTC | 3,588 | 6,506 | 2,871 | 3,635 |
+| asset | SDEX (Horizon paths) | Aquarius | Stellar Broker | Soroswap aggregator | spread between venues |
+|---|---:|---:|---:|---:|---:|
+| XLM | 37 | 326 | 37 | 55 | 290 |
+| EURC | 76 | 6,107 | 49 | 82 | 6,058 |
+| USTRY | 6 | 879 | 6 | 11 | 872 |
+| PYUSD | 407 | 9 | 214 | 14 | 399 |
+| ETH | 7,368 | 5,970 | 3,843 | 4,935 | 3,525 |
+| BTC | 3,589 | 6,506 | 2,872 | 6,913 | 4,041 |
 
-(Soroswap is wired but has not yet returned a live quote; see "What is honest".)
+The Soroswap aggregator is not best-of and carries a 10 bps input fee (`docs/VENUES.md` section 4).
 <!-- FINDINGS:END -->
 
 Nobody should size a limit off one venue, and nobody should treat a venue that is not answering as
@@ -101,10 +101,14 @@ A full deployment from an empty box is in [`docs/DEPLOY.md`](docs/DEPLOY.md). Th
 a free key from <https://api.soroswap.finance/register> in `SOROSWAP_API_KEY`; without it that venue
 records typed `no_key` rows and everything else runs.
 
+**One command to see the product:** `curl -s 'https://sounding.ochinimus.app/v1/exit?asset=XLM&size=100000'`
+
 ## What is honest and what is not
 
-- Soroswap is wired and unit-tested against its documented API, but **has not yet returned a live
-  quote** (no key was available when this was written). Until it does, three of four venues are live.
+- All four venues are live (Soroswap returned its first live quotes on 2026-10-25, HTTP 201). Its
+  aggregate is **not best-of** and every Soroswap route has 10 bps deducted from the input, which is a
+  real seller cost and is inside our cost figure: AQUA at $100k costs 1,211 bps through the aggregate
+  against 228 on Horizon paths. The per-protocol rows (`soroswap_agg:aqua`, `:sdex`, ...) show why.
 - The mark is the median of the $1k quotes across venues. If every venue is wrong together at $1k, so
   is the mark. An independent oracle cross-check is planned, not built.
 - Safe sizes between the four sampled sizes are interpolated, which is conservative (XLM at 200 bps:
