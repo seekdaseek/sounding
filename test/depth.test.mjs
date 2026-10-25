@@ -198,3 +198,15 @@ test('zero tolerance permits exactly the liquidity at or above the mark', () => 
   const s = safeCollateralSize(BOOK, 1.0, 0);
   assert.equal(s.safeSize, 100); // only the 1.00 level qualifies
 });
+
+// ---- Denomination of Horizon order_book bid amounts (found wrong in v1, 2026-10-25) -------------------
+import { readFileSync } from 'node:fs';
+test('bid amounts are counter-denominated: only that reading reproduces a real strict-send quote', async () => {
+  const { normaliseBids: nb, walkBids: wb } = await import('../src/depth.mjs');
+  const fx = JSON.parse(readFileSync(new URL('./fixtures/horizon-orderbook-xlm-denomination.json', import.meta.url), 'utf8'));
+  const got = fx.path_destination_amount;
+  const errCounter = Math.abs(wb(nb(fx.bids, 'counter').levels, fx.sell_units).proceeds - got) / got;
+  const errBase = Math.abs(wb(nb(fx.bids, 'base').levels, fx.sell_units).proceeds - got) / got;
+  assert.ok(errCounter < 1e-6, `counter reading must reproduce the real quote, error ${errCounter}`);
+  assert.ok(errBase > 1e-4, `base reading must NOT reproduce it, error ${errBase}`);
+});

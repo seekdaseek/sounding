@@ -24,11 +24,11 @@
 // USAGE (MAC):
 //   export USDC_ISSUER=GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN
 //   export SOROBAN_RPC=https://mainnet.sorobanrpc.com
-//   node bin/probe.mjs --pool <POOL_ID> --denom base
+//   node bin/probe.mjs --pool <POOL_ID>            (bid amounts are COUNTER-denominated; see verifyDenomination)
 
 import { Horizon, Asset, Networks } from '@stellar/stellar-sdk';
 import { PoolV2, PoolV1, TokenMetadata } from '@blend-capital/blend-sdk';
-import { normaliseBids, assessExit, safeCollateralSize, bookDepth } from '../src/depth.mjs';
+import { normaliseBids, assessExit, safeCollateralSize, bookDepth, walkBids } from '../src/depth.mjs';
 
 const HORIZON = process.env.HORIZON_URL || 'https://horizon.stellar.org';
 const RPC = process.env.SOROBAN_RPC || '';
@@ -43,26 +43,30 @@ function fail(m) { console.error(`\n  FAIL: ${m}\n`); process.exit(1); }
 const short = (id) => (id.length > 14 ? `${id.slice(0, 6)}\u2026${id.slice(-4)}` : id);
 const usd = (n) => (n === null || n === undefined ? '' : `$${Math.round(n).toLocaleString('en-US')}`);
 
+/**
+ * Which asset are order_book bid amounts denominated in? CORRECTED 2026-10-25.
+ * v1 compared a path quote with the top bid's AMOUNT, which cannot tell the hypotheses apart (it concluded
+ * "base"; that was wrong, and every direct-book depth figure from v1 inherited the error). The test here
+ * sells exactly what the first 15 bid levels absorb under the COUNTER hypothesis, then walks the book under
+ * both hypotheses and compares each with the real strictSendPaths quote. The right one reproduces it.
+ */
 async function verifyDenomination() {
   if (!USDC_ISSUER) fail('set USDC_ISSUER (read off stellar.expert, never memory)');
   const base = Asset.native();
   const counter = new Asset('USDC', USDC_ISSUER);
   const ob = await horizon.orderbook(base, counter).limit(ORDERBOOK_LIMIT).call();
   if (!ob.bids?.length) fail('no bids on XLM/USDC');
-
-  const amt = Number(ob.bids[0].amount);
-  const px = Number(ob.bids[0].price);
-  const paths = await horizon.strictSendPaths(base, amt.toFixed(7), [counter]).call();
+  const lc = normaliseBids(ob.bids, 'counter').levels;
+  const lb = normaliseBids(ob.bids, 'base').levels;
+  const size = lc.slice(0, 15).reduce((s, l) => s + l.base, 0);
+  const paths = await horizon.strictSendPaths(base, size.toFixed(7), [counter]).call();
   if (!paths.records?.length) fail('no path found');
-  const got = Number(paths.records[0].destination_amount);
-
-  const dBase = Math.abs(got - amt * px) / (amt * px);
-  const dCounter = Math.abs(got - amt) / Math.max(amt, 1e-9);
-  const verdict = dBase < dCounter ? 'base' : 'counter';
-  console.log(`\n  top bid amount=${amt} price=${px}`);
-  console.log(`  strictSendPaths(sell ${amt.toFixed(7)}) -> ${got}`);
-  console.log(`  error if base=${(dBase * 100).toFixed(2)}%  if counter=${(dCounter * 100).toFixed(2)}%`);
-  console.log(`  => bid amounts are ${verdict.toUpperCase()}-denominated\n`);
+  const got = Math.max(...paths.records.map((x) => Number(x.destination_amount)));
+  const eC = Math.abs(walkBids(lc, size).proceeds - got) / got;
+  const eB = Math.abs(walkBids(lb, size).proceeds - got) / got;
+  console.log(`\n  strictSendPaths(sell ${size.toFixed(7)} XLM) -> ${got}`);
+  console.log(`  walk error if bids are counter-denominated=${(eC * 100).toFixed(4)}%  if base-denominated=${(eB * 100).toFixed(4)}%`);
+  console.log(`  => bid amounts are ${eC < eB ? 'COUNTER' : 'BASE'}-denominated\n`);
 }
 
 /**
@@ -164,14 +168,14 @@ async function probePool(poolId, denom) {
   console.log('');
 }
 
-const denomFlag = val('--denom') || 'base'; // settled on mainnet Aug 7: base
+const denomFlag = val('--denom') || 'counter'; // corrected 2026-10-25: Horizon bid amounts are counter-denominated
 if (has('--verify-denomination')) await verifyDenomination();
 else if (val('--pool')) await probePool(val('--pool'), denomFlag);
 else console.log(`
   sounding probe v2
 
     node bin/probe.mjs --verify-denomination
-    node bin/probe.mjs --pool <BLEND_POOL_ID> [--denom base|counter]
+    node bin/probe.mjs --pool <BLEND_POOL_ID> [--denom counter|base]   (default counter)
 
   env: SOROBAN_RPC, USDC_ISSUER, HORIZON_URL (optional)
 `);

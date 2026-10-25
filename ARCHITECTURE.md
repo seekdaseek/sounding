@@ -372,18 +372,18 @@ every table is [`docs/RESULTS.md`](docs/RESULTS.md). The live equivalents are `G
 `GET /v1/history.csv`. Headline as of the timestamp in `docs/RESULTS.md`:
 
 <!-- RESULTS:BEGIN -->
-**640 samples** in **4 cycles** (one per 10 minutes) over 0.0 days, 10 assets x 4 sizes x 4 venues, first sample 2026-10-25T17:56:06Z, latest 2026-10-25T18:20:13Z. 0 venue answers failed for a reason other than a missing Soroswap key, each stored as a typed row and none read as zero liquidity; 160 rows are the Soroswap venue recording `no_key`.
+**960 samples** in **6 cycles** (one per 10 minutes) over 0.0 days, 10 assets x 4 sizes x 4 venues, first sample 2026-10-25T17:56:06Z, latest 2026-10-25T18:38:20Z. 0 venue answers failed for a reason other than a missing Soroswap key, each stored as a typed row and none read as zero liquidity; 240 rows are the Soroswap venue recording `no_key`.
 
-Selling **$100,000** of the asset into USDC, median cost in bps over 4 cycles:
+Selling **$100,000** of the asset into USDC, median cost in bps over 6 cycles:
 
 | asset | SDEX (Horizon paths) | Aquarius | Stellar Broker | spread between venues |
 |---|---:|---:|---:|---:|
-| XLM | 36 | 322 | 35 | 287 |
-| EURC | 76 | 6,102 | 50 | 6,052 |
+| XLM | 38 | 323 | 36 | 286 |
+| EURC | 76 | 6,105 | 49 | 6,055 |
 | USTRY | 6 | 879 | 6 | 872 |
 | PYUSD | 408 | 9 | 214 | 400 |
-| ETH | 7,366 | 5,970 | 3,849 | 3,517 |
-| BTC | 3,585 | 6,506 | 2,864 | 3,642 |
+| ETH | 7,367 | 5,970 | 3,847 | 3,520 |
+| BTC | 3,586 | 6,506 | 2,868 | 3,638 |
 
 (Soroswap is wired but has not yet returned a live quote; see "What is honest".)
 
@@ -400,6 +400,18 @@ collateral factor. Two runs minutes apart moved the XLM $100k figure from 304 to
 why this version samples continuously. Those numbers are history: they are what the code
 (`bin/probe.mjs`, still in the repository, still the only user of the optional Blend SDK) printed
 that day. Nothing in v2 reads from Blend.
+
+**Correction found on 2026-10-25, and what it withdraws.** v1 treated the `amount` of Horizon
+`order_book` bids as base-denominated and recorded that as "settled empirically". It is
+counter-denominated (USDC). v1's check compared a path quote with the top bid's amount, which cannot
+tell the two readings apart; real fills could (a top BTC bid of 8.478 at $79,830 is 8.478 USDC, about
+0.0001 BTC). The only reading that reproduces a real `strict-send` quote to the last digit is counter,
+now locked by a test with a real capture (`test/depth.test.mjs`, `bid amounts are counter-denominated`).
+Withdrawn: the direct-book depth and safe-size figures v1 printed (XLM $27,308 depth and $9,717 safe at
+2%; EURC $24,386 and $17,757) and the sentence that routed and direct answers "differ by an order of
+magnitude". Unaffected: the routed exit costs quoted above, which come from `strict-send`, not from the
+book. The v2 closed-form figure uses the corrected reading; stored closed-form rows from before the fix
+were deleted.
 
 ## 14. Identifiers
 

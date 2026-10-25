@@ -14,7 +14,7 @@ stays inside 50, 100, 200 and 500 bps, or says plainly that it cannot be trusted
 - Design, threat model, runbook: [`ARCHITECTURE.md`](ARCHITECTURE.md). Every claim mapped to a link or tx:
   [`docs/JUDGE_GUIDE.md`](docs/JUDGE_GUIDE.md)
 
-**Headline count:** <!-- HEADLINE:BEGIN --> **640 samples** in **4 cycles** (one per 10 minutes) over 0.0 days, 10 assets x 4 sizes x 4 venues, first sample 2026-10-25T17:56:06Z, latest 2026-10-25T18:20:13Z. 0 venue answers failed for a reason other than a missing Soroswap key, each stored as a typed row and none read as zero liquidity; 160 rows are the Soroswap venue recording `no_key`. <!-- HEADLINE:END -->
+**Headline count:** <!-- HEADLINE:BEGIN --> **960 samples** in **6 cycles** (one per 10 minutes) over 0.0 days, 10 assets x 4 sizes x 4 venues, first sample 2026-10-25T17:56:06Z, latest 2026-10-25T18:38:20Z. 0 venue answers failed for a reason other than a missing Soroswap key, each stored as a typed row and none read as zero liquidity; 240 rows are the Soroswap venue recording `no_key`. <!-- HEADLINE:END -->
 The live count is always `curl -s https://sounding.ochinimus.app/v1/stats`.
 
 ## What it found
@@ -22,16 +22,16 @@ The live count is always `curl -s https://sounding.ochinimus.app/v1/stats`.
 Same asset, same cycle, very different exits (cost in bps against the cycle's mark; 100 bps = 1%):
 
 <!-- FINDINGS:BEGIN -->
-Selling **$100,000** of the asset into USDC, median cost in bps over 4 cycles:
+Selling **$100,000** of the asset into USDC, median cost in bps over 6 cycles:
 
 | asset | SDEX (Horizon paths) | Aquarius | Stellar Broker | spread between venues |
 |---|---:|---:|---:|---:|
-| XLM | 36 | 322 | 35 | 287 |
-| EURC | 76 | 6,102 | 50 | 6,052 |
+| XLM | 38 | 323 | 36 | 286 |
+| EURC | 76 | 6,105 | 49 | 6,055 |
 | USTRY | 6 | 879 | 6 | 872 |
 | PYUSD | 408 | 9 | 214 | 400 |
-| ETH | 7,366 | 5,970 | 3,849 | 3,517 |
-| BTC | 3,585 | 6,506 | 2,864 | 3,642 |
+| ETH | 7,367 | 5,970 | 3,847 | 3,520 |
+| BTC | 3,586 | 6,506 | 2,868 | 3,638 |
 
 (Soroswap is wired but has not yet returned a live quote; see "What is honest".)
 <!-- FINDINGS:END -->
@@ -118,7 +118,9 @@ records typed `no_key` rows and everything else runs.
 
 v1 sized Blend collateral and measured the largest Blend pool in August 2026 (XLM $1M exit: 32%
 cost). That work is kept as one short section of [`ARCHITECTURE.md`](ARCHITECTURE.md) and as
-`bin/probe.mjs`. Nothing in v2 depends on Blend.
+`bin/probe.mjs`. Nothing in v2 depends on Blend. v1's direct-order-book depth figures were computed
+under a wrong assumption about Horizon bid amounts (they are USDC, not base) and are withdrawn; the
+routed exit costs are unaffected. The correction is recorded in ARCHITECTURE section 13.
 
 ## License
 

@@ -74,7 +74,9 @@ async function bookSafe(db, cycleId, asset, mark, ctx) {
     try { const res = await ctx.fetch(`https://horizon.stellar.org/order_book?${q}`); return res.ok ? await res.json() : null; } catch { return null; }
   });
   if (!r || !Array.isArray(r.bids)) return;
-  const { levels } = normaliseBids(r.bids, 'base');
+  // Horizon order_book bid amounts are denominated in the COUNTER asset (USDC): verified against real
+  // strict-send quotes on 2026-10-25 (test/depth.test.mjs, 'bid amounts are counter-denominated').
+  const { levels } = normaliseBids(r.bids, 'counter');
   const ts = Date.now();
   const ins = db.prepare('INSERT OR REPLACE INTO book_safe (cycle_id, ts, asset, tol_bps, safe_units, safe_usd, limited_by, depth_units, bid_levels) VALUES (?,?,?,?,?,?,?,?,?)');
   for (const tol of TOLERANCES_BPS) {

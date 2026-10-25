@@ -51,6 +51,7 @@ The adapter takes the record with the largest `destination_amount`.
 - **No route (real):** HTTP 200 with `"records": []`, which the adapter stores as `no_route`.
 - **Rate limits:** Horizon sent no `X-RateLimit-*` or `Retry-After` header on the responses I inspected. The sampler paces this venue at one call per 350 ms and honours `Retry-After` if a 429 ever arrives (unit test: `horizon: 429 is a typed rate_limited failure`). The observed `rate_limited` count is in `/v1/stats` (`venues.sdex_horizon.failures_by_kind`).
 - **Failure modes:** see the section at the end for what the sampler has recorded. A 400 on a malformed asset is mapped to `bad_request`.
+- **Order book denomination (corrected 2026-10-25).** In `GET /order_book`, a bid's `amount` is in the **counter** asset (USDC), not the base. Evidence: the raw offer behind the top BTC bid is `amount 8.4780112` of USDC at `price 0.0000125` BTC per USDC, and a sell of 0.001 BTC does not fill at that bid's price as it would if the bid were for 8.48 BTC; walking the book under each reading against a real `strict-send` quote for XLM and EURC gives 0.000% error for counter and 0.28% / 0.05% for base (`bin/probe.mjs --verify-denomination`, `test/depth.test.mjs`). v1 of this project had it the other way round.
 - **Also used:** `GET /order_book?...&limit=200` for the closed-form safe size on the direct book (`src/depth.mjs`). 200 is Horizon's maximum; the default of 20 silently truncates.
 
 ## 2. Aquarius: `aquarius`

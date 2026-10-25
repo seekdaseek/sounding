@@ -46,9 +46,11 @@ function num(v, field) {
  * happened to EURC on mainnet), and silently dropping it would hide how much
  * of the book was ignored.
  *
- * HORIZON DENOMINATION: settled empirically on mainnet — bid amounts are
- * 'base'-denominated. Kept as an explicit argument so the assumption stays
- * visible and falsifiable rather than buried.
+ * HORIZON DENOMINATION: bid amounts are COUNTER-denominated (USDC when quoting against USDC). This was
+ * recorded here as 'base' in v1 and was WRONG; corrected 2026-10-25 when real fills disagreed with the
+ * book (a $79,830 BTC bid "for 8.48 BTC" is a bid for 8.48 USDC). The only reading that reproduces a real
+ * strict-send quote to the last digit is counter (test/depth.test.mjs, fixture
+ * horizon-orderbook-xlm-denomination.json). Kept as an explicit argument so it stays falsifiable.
  *
  * @param {Level[]} bids
  * @param {'base'|'counter'} amountDenom
