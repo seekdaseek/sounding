@@ -1,20 +1,26 @@
 {
   "name": "sounding",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "directories": {
-    "test": "test"
-  },
-  "scripts": {
-    "test": "node --no-warnings --test \"test/*.test.mjs\""
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "version": "2.0.0",
+  "description": "Exit liquidity for Stellar assets: how much can I sell right now, and what does it cost, at size S. Four venues, measured every 10 minutes.",
   "type": "module",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/seekdaseek/sounding.git" },
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "test": "node --no-warnings --test \"test/*.test.mjs\"",
+    "discover": "node bin/discover.mjs",
+    "sampler": "node --no-warnings bin/sampler.mjs",
+    "api": "node --no-warnings bin/api.mjs",
+    "paid": "node --no-warnings bin/paid.mjs"
+  },
   "dependencies": {
-    "@blend-capital/blend-sdk": "^3.3.0",
-    "@stellar/stellar-sdk": "^16.3.0"
+    "@stellar/stellar-sdk": "^16.3.0",
+    "@x402/core": "2.28.0",
+    "@x402/express": "2.28.0",
+    "@x402/stellar": "2.28.0",
+    "express": "^5.3.0"
+  },
+  "optionalDependencies": {
+    "@blend-capital/blend-sdk": "^3.3.0"
   }
 }
