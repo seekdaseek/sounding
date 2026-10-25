@@ -1,0 +1,121 @@
+{
+  "generated": "2026-10-25T17:52:03.052Z",
+  "source": "aquarius pools list (live) + measured Horizon/Aquarius exits",
+  "quote_asset": {
+    "code": "USDC",
+    "issuer": "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+    "sac": "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75"
+  },
+  "assets": [
+    {
+      "id": "XLM",
+      "code": "XLM",
+      "issuer": null,
+      "native": true,
+      "sac": "CAS3J7GYLGXMF6TDJBBYYSE3HQ6BBSMLNUQ34T6TZMYMW2EVH34XOWMA",
+      "aquarius_pools": 155,
+      "seed_price_usdc": 0.16949536475503096,
+      "bps_at_10k": 11,
+      "bps_at_100k": 37
+    },
+    {
+      "id": "EURC",
+      "code": "EURC",
+      "issuer": "GDHU6WRG4IEQXM5NZ4BMPKOXHW76MZM4Y2IEMFDVXBSDP6SJY4ITNPP2",
+      "native": false,
+      "sac": "CDTKPWPLOURQA2SGTKTUQOWRCBZEORB4BWBOMJ3D3ZTQQSGE5F6JBQLV",
+      "aquarius_pools": 12,
+      "seed_price_usdc": 1.1080651099789554,
+      "bps_at_10k": 7,
+      "bps_at_100k": 80
+    },
+    {
+      "id": "AQUA",
+      "code": "AQUA",
+      "issuer": "GBNZILSTVQZ4R7IKQDGHYGY2QXL5QOFJYQMXPKWRRM5PAV7Y4M67AQUA",
+      "native": false,
+      "sac": "CAUIKL3IYGMERDRUN6YSCLWVAKIFG5Q4YJHUKM4S4NJZQIA3BAS6OJPK",
+      "aquarius_pools": 80,
+      "seed_price_usdc": 0.00028597588578297003,
+      "bps_at_10k": 58,
+      "bps_at_100k": 258
+    },
+    {
+      "id": "yXLM",
+      "code": "yXLM",
+      "issuer": "GARDNV3Q7YGT4AKSDF25LT32YSCCW4EV22Y2TV3I2PU2MMXJTEDL5T55",
+      "native": false,
+      "sac": "CBZVSNVB55ANF24QVJL2K5QCLOAB6XITGTGXYEAF6NPTXYKEJUYQOHFC",
+      "aquarius_pools": 6,
+      "seed_price_usdc": 0.169381319719291,
+      "bps_at_10k": 15,
+      "bps_at_100k": 57
+    },
+    {
+      "id": "USTRY",
+      "code": "USTRY",
+      "issuer": "GCRYUGD5NVARGXT56XEZI5CIFCQETYHAPQQTHO2O3IQZTHDH4LATMYWC",
+      "native": false,
+      "sac": "CBLV4ATSIWU67CFSQU2NVRKINQIKUZ2ODSZBUJTJ43VJVRSBTZYOPNUR",
+      "aquarius_pools": 6,
+      "seed_price_usdc": 1.0778994576676177,
+      "bps_at_10k": 1,
+      "bps_at_100k": 6
+    },
+    {
+      "id": "PYUSD",
+      "code": "PYUSD",
+      "issuer": "GDQE7IXJ4HUHV6RQHIUPRJSEZE4DRS5WY577O2FY6YQ5LVWZ7JZTU2V5",
+      "native": false,
+      "sac": "CCCRWH6Q3FNP3I2I57BDLM5AFAT7O6OF6GKQOC6SSJNDAVRZ57SPHGU2",
+      "aquarius_pools": 9,
+      "seed_price_usdc": 0.9996872130389114,
+      "bps_at_10k": 0,
+      "bps_at_100k": 9
+    },
+    {
+      "id": "ETH",
+      "code": "ETH",
+      "issuer": "GBFXOHVAS43OIWNIO7XLRJAHT3BICFEIKOJLZVXNT572MISM4CMGSOCC",
+      "native": false,
+      "sac": "CBH4M45TQBLDPXOK6L7VYKMEJWFITBOL64BN3WDAIIDT4LNUTWTTOCKF",
+      "aquarius_pools": 5,
+      "seed_price_usdc": 2307.950218098739,
+      "bps_at_10k": 729,
+      "bps_at_100k": 5977
+    },
+    {
+      "id": "BTC",
+      "code": "BTC",
+      "issuer": "GDPJALI4AZKUU2W426U5WKMAT6CN3AJRPIIRYR2YM54TL2GDWO5O2MZM",
+      "native": false,
+      "sac": "CAO7DDJNGMOYQPRYDY5JVZ5YEK4UQBSMGLAEWRCUOTRMDSBMGWSAATDZ",
+      "aquarius_pools": 7,
+      "seed_price_usdc": 78982.20658733237,
+      "bps_at_10k": 438,
+      "bps_at_100k": 3577
+    },
+    {
+      "id": "XRP",
+      "code": "XRP",
+      "issuer": "GBXRPL45NPHCVMFFAYZVUVFFVKSIZ362ZXFP7I2ETNQ3QKZMFLPRDTD5",
+      "native": false,
+      "sac": "CAAV3AE3VKD2P4TY7LWTQMMJHIJ4WOCZ5ANCIJPC3NRSERKVXNHBU2W7",
+      "aquarius_pools": 5,
+      "seed_price_usdc": 1.2976114599740887,
+      "bps_at_10k": 59,
+      "bps_at_100k": 951
+    },
+    {
+      "id": "SHX",
+      "code": "SHX",
+      "issuer": "GDSTRSHXHGJ7ZIVRBXEYE5Q74XUVCUSEKEBR7UCHEUUEK72N7I7KJ6JH",
+      "native": false,
+      "sac": "CCKCKCPHYVXQD4NECBFJTFSCU2AMSJGCNG4O6K4JVRE2BLPR7WNDBQIQ",
+      "aquarius_pools": 15,
+      "seed_price_usdc": 0.0051045514864113605,
+      "bps_at_10k": 190,
+      "bps_at_100k": 2129
+    }
+  ]
+}

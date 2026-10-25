@@ -1,0 +1,13 @@
+{
+  "_note": "NOT A LIVE RESPONSE. Hand-built from docs.soroswap.finance/api-reference/quote (response schema + examples). Replace with a live capture once SOROSWAP_API_KEY exists.",
+  "assetIn": "CAS3J7GYLGXMF6TDJBBYYSE3HQ6BBSMLNUQ34T6TZMYMW2EVH34XOWMA",
+  "assetOut": "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75",
+  "amountIn": "50000000000",
+  "amountOut": "8475153804",
+  "otherAmountThreshold": 8432777034,
+  "tradeType": "EXACT_IN",
+  "priceImpactPct": "0.50",
+  "platform": "aggregator",
+  "rawTrade": { "distribution": [ { "protocol_id": "aqua", "share": "50000000000", "hops": [ { "poolId": "C...", "protocol": "aqua", "tokenIn": "CAS3...", "tokenOut": "CCW6...", "amountIn": "50000000000", "amountOut": "8475153804" } ] } ] },
+  "routePlan": [ { "swapInfo": { "protocol": "aqua", "path": ["CAS3...", "CCW6..."] }, "percent": "100" } ]
+}
