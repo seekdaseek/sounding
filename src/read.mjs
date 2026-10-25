@@ -80,6 +80,12 @@ export function bookSafe(db, assetId) {
   return Object.fromEntries(rows.map((r) => [r.tol_bps, { safe_usd: round(r.safe_usd, 0), limited_by: r.limited_by, bid_levels: r.bid_levels, method: 'closed_form_orderbook' }]));
 }
 
+/** Latest hourly bisection results for an asset: {tol: {safe_usd, venue, limited_by, quotes, ts}}. */
+export function bisected(db, assetId) {
+  const rows = db.prepare('SELECT tol_bps, venue, safe_usd, limited_by, quotes, ts FROM bisect WHERE asset = ? AND cycle_id = (SELECT MAX(cycle_id) FROM bisect WHERE asset = ?)').all(assetId, assetId);
+  return Object.fromEntries(rows.map((r) => [r.tol_bps, { safe_usd: round(r.safe_usd, 0), venue: r.venue, limited_by: r.limited_by, quotes: r.quotes, at: new Date(r.ts).toISOString(), method: 'bisection_quotes' }]));
+}
+
 export function exitReport(db, assetId, sizeUsd, nowMs, opts = {}) {
   const disagreeBps = opts.disagreeBps ?? DEFAULT_DISAGREE_BPS, cap = opts.shareCap ?? DEFAULT_SHARE_CAP;
   const lc = latestCycle(db, assetId);
@@ -113,7 +119,7 @@ export function exitReport(db, assetId, sizeUsd, nowMs, opts = {}) {
     const indep = Object.fromEntries(INDEPENDENT_VENUES.filter((v) => per[v] !== undefined).map((v) => [v, per[v]]));
     const capped = cappedDepth(indep, cap);
     venueDepths[t] = { per_venue_usd: Object.fromEntries(Object.entries(per).map(([k, x]) => [k, round(x, 0)])), independent_total_capped_usd: round(capped.published, 0), shares: Object.fromEntries(Object.entries(capped.shares).map(([k, x]) => [k, round(x, 3)])), cap_limited_by: capped.limitedBy };
-    safe[t] = { ...safeNow[t], safe_usd: round(safeNow[t].safeUsd, 0) };
+    safe[t] = { safe_usd: round(safeNow[t].safeUsd, 0), limited_by: safeNow[t].limitedBy, method: safeNow[t].method };
     const twEff = tw ? tw.effective : null;
     const pub = twEff === null ? null : Math.min(twEff, capped.published);
     published[t] = { safe_usd: pub === null ? null : round(pub, 0), time_weighted_usd: round(twEff, 0), venue_capped_usd: round(capped.published, 0), window_cycles: win.length };
@@ -132,7 +138,7 @@ export function exitReport(db, assetId, sizeUsd, nowMs, opts = {}) {
     venues, best: best ? { venue: best.venue, proceeds_usdc: best.proceedsUsdc, cost_bps: round(costBps(lc.mark, sizeUsd / lc.mark, best.proceedsUsdc)) } : null,
     disagreement: { ...dis, spreadBps: round(dis.spreadBps), fullSpreadBps: round(dis.fullSpreadBps) },
     price_agreement_at_1k: { ...priceAgree, spreadBps: round(priceAgree.spreadBps), fullSpreadBps: round(priceAgree.fullSpreadBps) },
-    safe_size: { method: 'interpolated_quotes over the best-exit curve; book entry is closed_form_orderbook', tolerance_bps: safe, orderbook_closed_form: bookSafe(db, assetId) },
+    safe_size: { method: 'interpolated_quotes over the best-exit curve; book entry is closed_form_orderbook', tolerance_bps: safe, orderbook_closed_form: bookSafe(db, assetId), bisection_hourly: bisected(db, assetId) },
     venue_depths: venueDepths,
     published: { status: publishable ? 'ok' : (reasons.includes('stale') ? 'stale' : 'refused'), publishable, reasons, safe_size_usd: published, consumer_rule: 'on stale or refused: hold the current limit, never raise' },
   };

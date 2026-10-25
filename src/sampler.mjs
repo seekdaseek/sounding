@@ -9,15 +9,16 @@
 // Each answer is stored as ok | no_route | failed(kind). Nothing failed is stored as zero.
 import { Lane } from './util.mjs';
 import { horizon, aquarius, broker, soroswap } from './venues/index.mjs';
-import { markFromSmallQuotes, costBps, SIZES_USD, TOLERANCES_BPS } from './engine.mjs';
+import { markFromSmallQuotes, costBps, bisectSafeSize, SIZES_USD, TOLERANCES_BPS } from './engine.mjs';
 import { insertSamples } from './store.mjs';
 import { normaliseBids, safeCollateralSize, bookDepth } from './depth.mjs';
 import { USDC_ISSUER } from './util.mjs';
 
 export const LANE_GAPS_MS = { sdex_horizon: 350, aquarius: 300, broker: 400, soroswap_agg: 1150 };
 
-export function makeLanes() {
-  return Object.fromEntries(Object.entries(LANE_GAPS_MS).map(([k, g]) => [k, new Lane(k, g)]));
+/** One serial lane per venue. `slow` multiplies every gap (the refine pass runs at half rate). */
+export function makeLanes(slow = 1) {
+  return Object.fromEntries(Object.entries(LANE_GAPS_MS).map(([k, g]) => [k, new Lane(k, g * slow)]));
 }
 
 /** The tasks for one (asset, units): [{ venueName, lane, run() }]. */
@@ -127,4 +128,39 @@ export async function runCycle(db, universe, ctx, { log = () => {} } = {}) {
   await Promise.all(universe.assets.map((a) => perAsset(a).catch((e) => log(`  ${a.id}: cycle error ${e?.message}`))));
   db.prepare('UPDATE cycles SET ts_end = ?, rows = ? WHERE cycle_id = ?').run(Date.now(), nRows, cycleId);
   return { cycleId, rows: nRows, ms: Date.now() - ts0 };
+}
+
+/** Keyless venues the refinement may bisect on (soroswap is rate-limited to 1 req/s and is not used for search). */
+const BISECT_ADAPTERS = { sdex_horizon: horizon, aquarius, broker };
+
+/**
+ * Hourly refinement: for each asset, bisect LIVE quotes on the venue that was cheapest at
+ * $100k this cycle, once per tolerance. METHOD 'bisection_quotes' (src/engine.mjs). A failed
+ * quote aborts that search and is stored as limited_by 'failed', never as a size of zero.
+ * A definitive no_route counts as "too expensive" (the venue answered: it cannot fill).
+ */
+export async function runRefine(db, universe, ctx, cycleId, { iters = 7, log = () => {} } = {}) {
+  const ins = db.prepare('INSERT OR REPLACE INTO bisect (cycle_id, ts, asset, venue, tol_bps, safe_usd, limited_by, quotes) VALUES (?,?,?,?,?,?,?,?)');
+  let n = 0;
+  await Promise.all(universe.assets.map(async (asset) => {
+    const m = db.prepare('SELECT mark FROM marks WHERE cycle_id = ? AND asset = ? AND mark IS NOT NULL').get(cycleId, asset.id);
+    if (!m) return;
+    const best = db.prepare(`SELECT venue FROM samples WHERE cycle_id = ? AND asset = ? AND size_usd = 100000 AND status = 'ok'
+      AND venue IN ('sdex_horizon','aquarius','broker') ORDER BY bps ASC LIMIT 1`).get(cycleId, asset.id);
+    if (!best) return;
+    const adapter = BISECT_ADAPTERS[best.venue];
+    const quoteBps = async (usd) => {
+      const units = usd / m.mark;
+      const r = await ctx.lanes[best.venue].run(() => adapter.quote({ asset, units, sizeUsd: usd }, { fetch: ctx.fetch, lane: ctx.lanes[best.venue] }));
+      if (r.status === 'ok') return costBps(m.mark, units, r.proceedsUsdc);
+      if (r.status === 'no_route') return 1e9;
+      return null;
+    };
+    for (const tol of TOLERANCES_BPS) {
+      const r = await bisectSafeSize(quoteBps, { lo: SIZES_USD[0], hi: SIZES_USD[SIZES_USD.length - 1], tolBps: tol, iters });
+      ins.run(cycleId, Date.now(), asset.id, best.venue, tol, r.safeUsd, r.limitedBy, r.quotes); n++;
+    }
+    log(`  refine ${asset.id} on ${best.venue}`);
+  }));
+  return n;
 }

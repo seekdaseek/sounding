@@ -105,3 +105,28 @@ test('the second cycle sizes the smallest quote from the stored mark (no seed pr
   assert.equal(seedProbes, 0);
   assert.equal(q(db, 'SELECT COUNT(*) n FROM cycles')[0].n, 2);
 });
+
+test('hourly refine bisects live quotes on the cheapest keyless venue and stores a size per tolerance', async () => {
+  const { runRefine } = await import('../src/sampler.mjs');
+  const db = openStore(':memory:');
+  const f = fakeNet();
+  const { cycleId } = await runCycle(db, uni, { lanes: lanesFast(), apiKey: '', fetch: f });
+  const n = await runRefine(db, uni, { lanes: lanesFast(), apiKey: '', fetch: f }, cycleId, { iters: 6 });
+  assert.equal(n, 4);
+  const rows = q(db, 'SELECT * FROM bisect ORDER BY tol_bps');
+  assert.deepEqual(rows.map((r) => r.tol_bps), [50, 100, 200, 500]);
+  for (const r of rows) { assert.ok(['tolerance', 'sample_cap', 'below_min_sample'].includes(r.limited_by), r.limited_by); assert.ok(r.quotes >= 2); }
+  const safe = rows.map((r) => r.safe_usd);
+  for (let i = 1; i < safe.length; i++) assert.ok(safe[i] >= safe[i - 1], `monotone in tolerance: ${safe}`);
+});
+
+test('refine: a failing venue aborts the search as limited_by failed, never as a zero size', async () => {
+  const { runRefine } = await import('../src/sampler.mjs');
+  const db = openStore(':memory:');
+  const good = fakeNet();
+  const { cycleId } = await runCycle(db, uni, { lanes: lanesFast(), apiKey: '', fetch: good });
+  const dead = async () => { throw Object.assign(new Error('x'), { cause: { code: 'ECONNRESET' } }); };
+  await runRefine(db, uni, { lanes: lanesFast(), apiKey: '', fetch: dead }, cycleId, { iters: 4 });
+  const rows = q(db, 'SELECT * FROM bisect');
+  assert.ok(rows.length === 4 && rows.every((r) => r.limited_by === 'failed' && r.safe_usd === null));
+});

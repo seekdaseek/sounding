@@ -2,106 +2,112 @@
 
 A sounding is the depth measurement taken before committing the ship.
 
-Blend pools let anyone deploy a lending market and choose their own collateral,
-oracle and risk parameters. Nothing tells a pool creator whether the collateral
-they accepted can actually be sold at the size they are lending against.
+**sounding answers one question for Stellar assets: how much of asset X can I sell right now, and
+what does it cost, at size S?** It asks four exit venues (SDEX through Horizon paths, the Soroswap
+aggregator, Aquarius, Stellar Broker), measures every ten minutes, and reports the largest size that
+stays inside 50, 100, 200 and 500 bps, or says plainly that it cannot be trusted right now.
 
-In February 2026 the YieldBlox pool lost roughly 10.8 million dollars to oracle
-manipulation. The post mortem's own prescription was to check orderbook depth
-against the borrow limit before an asset is used as collateral. This measures
-exactly that.
+- Live: <https://sounding.ochinimus.app> (the page opens with a live number: XLM at $100k, cost per venue)
+- API: `GET /v1/exit?asset=ETH&size=100000`, `/v1/stats`, `/v1/history.csv` (CC BY 4.0)
+- Paid: `GET /paid/v1/exit` over x402, USDC on Stellar. **Testnet only today**; one real settlement
+  is [`7a9c3cd9…2db4`](https://stellar.expert/explorer/testnet/tx/7a9c3cd9e2693cc8419459248a8fd24c96cd3a611b384f2c39409c984c2f2db4)
+- Design, threat model, runbook: [`ARCHITECTURE.md`](ARCHITECTURE.md). Every claim mapped to a link or tx:
+  [`docs/JUDGE_GUIDE.md`](docs/JUDGE_GUIDE.md)
+
+**Headline count:** <!-- HEADLINE:BEGIN -->(filled by the report step)<!-- HEADLINE:END -->
+The live count is always `curl -s https://sounding.ochinimus.app/v1/stats`.
 
 ## What it found
 
-Measured against Blend Fixed Pool V2 on Stellar mainnet, 7 August 2026.
-Pool CAJJZSGMMM3PD7N33TAPHGBUGTB43OC73HVIK2L2G6BNGGGYOSSYBXBD.
-175.74 million supplied, 51.65 million borrowed, 2.79 million backstop.
+Same asset, same cycle, very different exits (cost in bps against the cycle's mark; 100 bps = 1%):
 
-Routed exit haircut against the pool's own oracle mark, quoted through
-Stellar path payments across order books and AMM pools.
+<!-- FINDINGS:BEGIN -->(filled by the report step)<!-- FINDINGS:END -->
 
-| asset | marked | 1k | 10k | 100k | 1M | 10M |
-|-------|--------|-----|------|-------|-----|------|
-| XLM  | $109,414,596 | 22bps | 25bps | 407bps | 3208bps | 8241bps |
-| EURC | $3,233,752 | 41bps | 64bps | 4958bps | 9091bps | n/a |
+Nobody should size a limit off one venue, and nobody should treat a venue that is not answering as
+if it said zero. Both rules are enforced in code (below).
 
-Selling one million dollars of that XLM costs 32 percent. Selling one hundred
-thousand of the EURC costs 49 percent, on a reserve carrying a 0.95 collateral
-factor, which is to say the pool treats it as 95 percent as good as cash.
+## Five-minute verify path
 
-The direct order book alone says XLM has 27,308 dollars of depth and that 9,717
-is safe at a 2 percent tolerance. Routing says 100k moves at 4 percent. Those
-answers differ by an order of magnitude, and a pool creator sizing off the wrong
-one is making the YieldBlox mistake.
-
-Two runs minutes apart gave 304 and then 407 basis points for the same 100k XLM
-exit. A single reading is not a finding. That is the argument for continuous
-sampling rather than a caveat against it.
-
-## Why Stellar
-
-On an AMM chain depth can only be inferred, by firing quote requests at
-increasing sizes and bisecting toward the edge. That is slow, rate limited, and
-it quantises the answer to wherever the probes happened to land.
-
-SDEX is a native order book. Depth is read, not inferred, and the exit curve is
-closed form from one call. The same measurement is a better product here than on
-the chain it was first built for.
-
-## What is honest and what is not
-
-Horizon path finding covers classic order books and classic AMM pools. Whether
-it reaches Soroban contract based AMMs such as Aquarius is not established, so
-the numbers above are a floor rather than the full picture. Closing that gap is
-open work.
-
-Marks are oracle USD and proceeds are USDC, which assumes USDC trades at a
-dollar.
-
-A liquidator is not confined to on chain venues. They can take the collateral
-and offload it to an exchange. The claim here is that the on chain number binds
-during a fast cascade, which is when liquidations fire, not that off chain
-liquidity does not exist.
-
-## Layout
-
-    src/depth.mjs   pure math, no I/O and no clock
-    test/           26 offline tests, no network
-    bin/probe.mjs   live mainnet measurement
-
-## Running it
-
-    npm i
-    npm test
-    export USDC_ISSUER=GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN
-    export SOROBAN_RPC=https://mainnet.sorobanrpc.com
-    node bin/probe.mjs --pool <BLEND_POOL_ID> --denom base
+1. **Open the page.** <https://sounding.ochinimus.app> shows the XLM $100k cost per venue, measured
+   `age` seconds ago. Nothing typed.
+2. **Ask for a harder case.** `curl 'https://sounding.ochinimus.app/v1/exit?asset=EURC&size=100000'`:
+   `venues[]` carries each venue's proceeds and cost; `best`, `disagreement`, `safe_size`, `stale`,
+   `age_s`, `published.publishable` and `published.reasons` say what to do with it.
+3. **Check a venue yourself.** Run the real request for one venue from [`docs/VENUES.md`](docs/VENUES.md)
+   (plain `curl` lines for Horizon, Aquarius and Stellar Broker) and compare to the `venues[]`
+   row for the same asset and size, minutes apart.
+4. **Check the history.** `curl -O https://sounding.ochinimus.app/v1/history.csv`; every row is one
+   venue answer: `ok`, `no_route` or `failed` with a typed `fail_kind`. Recompute any number on the page from it.
+5. **Run the tests.** `git clone https://github.com/seekdaseek/sounding && cd sounding && npm ci && npm test`:
+   offline, no network.
+6. **See the payment.** Open the testnet transaction linked above on stellar.expert.
 
 ## Rules enforced in code, not prose
 
-A partial fill is reported as partial with the amount actually sold. Never
-rounded up to cannot exit, which reads as unsellable and is false. Never
-rounded down to zero.
+- **A failed read is never a finding.** Each venue answer is `ok`, `no_route` (the venue said it
+  cannot fill) or `failed(kind)`. Failures are stored as typed rows and never enter the mark, the best
+  exit or a safe size as zero.
+- **A refusal is a first-class answer.** Stale readings, a venue paying far more than the rest at $1k,
+  and depth carried by a single venue make `published.publishable` false with the reasons listed. The
+  consumer rule is hold the current limit, never raise it.
+- **Depth is averaged, not snapshotted.** The published size is the time-weighted mean over the last
+  hour, capped by the latest cycle, so a level that just appeared cannot raise it and one that just
+  vanished lowers it at once.
+- **No venue carries more than 60% of the published depth**, and only independent pools are counted.
+- **Partial fills are reported as partial**, never as "cannot exit" and never as zero.
+- **Missing values throw.** `Number(null)` is 0 and `isFinite(null)` is true; there is a test for every
+  value JavaScript silently turns into zero.
 
-A failed read is never a finding. The verdict is three way, quotable against
-soroban native against measurement failed, so a bug in this code cannot
-masquerade as the conclusion that there is no liquidity. That masquerade existed
-in the first version and was caught in review.
+## Layout
 
-Negative haircuts are reported, not suppressed. A book paying above the mark
-means the collateral is marked conservatively, which inverts the naive story.
+```
+src/engine.mjs      pure: mark, cost, best exit, disagreement, safe size (interpolation, bisection),
+                    time-weighted depth, venue share cap, staleness
+src/depth.mjs       pure: closed-form safe size on a Horizon order book
+src/venues/*.mjs    the four adapters; ok | no_route | failed(kind)
+src/sampler.mjs     one cycle: every asset x size x venue -> sqlite; hourly bisection
+src/read.mjs        stored samples -> the answer to "how much can I sell"
+src/api.mjs         read API and the one-page explainer (node:http, zero dependencies)
+src/paid.mjs        x402 paywall on Stellar (testnet)
+bin/                sampler, api, paid, discover (asset universe), probe (the original Blend gate)
+ops/                deploy.sh, pm2-start.sh, backup.sh
+docs/               VENUES.md, DEPLOY.md, JUDGE_GUIDE.md, RESULTS.md
+test/               offline tests; fixtures are real API captures
+```
 
-Missing values throw instead of coercing. Number(null) is 0 and isFinite(null)
-is true, so an unguarded read turns a failure into fabricated data. There is a
-test for every value JavaScript silently turns into zero.
+## Run it
 
-Prices come from Horizon's exact rational price_r, not the seven decimal string,
-which renders anything below 1e-7 as zero. Dust levels are skipped and counted
-rather than thrown on. One junk row once discarded an entire good 200 level
-book.
+```bash
+npm ci
+npm test
+node --no-warnings bin/sampler.mjs --once      # one cycle into ./sounding.db (needs network)
+PORT=3035 node --no-warnings bin/api.mjs       # then open http://127.0.0.1:3035
+```
 
-Ordering from upstream is never trusted. The book is sorted before it is walked.
+A full deployment from an empty box is in [`docs/DEPLOY.md`](docs/DEPLOY.md). The Soroswap venue needs
+a free key from <https://api.soroswap.finance/register> in `SOROSWAP_API_KEY`; without it that venue
+records typed `no_key` rows and everything else runs.
+
+## What is honest and what is not
+
+- Soroswap is wired and unit-tested against its documented API, but **has not yet returned a live
+  quote** (no key was available when this was written). Until it does, three of four venues are live.
+- The mark is the median of the $1k quotes across venues. If every venue is wrong together at $1k, so
+  is the mark. An independent oracle cross-check is planned, not built.
+- Safe sizes between the four sampled sizes are interpolated; the hourly bisection and the closed-form
+  order-book figure are reported beside them, labelled by method.
+- The x402 payment path is proven on **testnet**. Mainnet is not configured.
+- The Soroban publisher contract is a design, not code.
+- Liquidations are not confined to onchain venues; this measures what is sellable onchain, which is
+  what binds in a fast cascade.
+
+## History
+
+v1 sized Blend collateral and measured the largest Blend pool in August 2026 (XLM $1M exit: 32%
+cost). That work is kept as one short section of [`ARCHITECTURE.md`](ARCHITECTURE.md) and as
+`bin/probe.mjs`. Nothing in v2 depends on Blend.
 
 ## License
 
-MIT
+Code: MIT. Data (`/v1/*`, `history.csv`): CC BY 4.0, attribute "sounding
+(github.com/seekdaseek/sounding)".
