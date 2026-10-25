@@ -61,10 +61,22 @@ function rowOut(r, interpolated) {
   return o;
 }
 
-/** Stale bound for an asset from its own mark history (last 24 h). */
+/**
+ * Stale bound for an asset from its own measured drift (last 24 h).
+ * The drifting quantity is the best-exit price at $100k, i.e. mark x (1 - best cost): it moves when the
+ * price moves AND when depth appears or vanishes, which is what the published size actually depends on.
+ * A mark-only series would call an asset calm while its book is being pulled.
+ */
+export function driftSeries(db, assetId, nowMs) {
+  return db.prepare(`SELECT m.ts AS ts, m.mark * (1 - MIN(s.bps) / 10000.0) AS mark
+    FROM marks m JOIN samples s ON s.cycle_id = m.cycle_id AND s.asset = m.asset
+    WHERE m.asset = ? AND m.mark IS NOT NULL AND m.ts > ? AND s.size_usd = 100000 AND s.status = 'ok'
+      AND s.venue IN ('sdex_horizon','aquarius','broker','soroswap_agg') AND s.bps IS NOT NULL
+    GROUP BY m.cycle_id HAVING mark > 0 ORDER BY m.ts`).all(assetId, nowMs - 86_400_000);
+}
+
 export function staleBound(db, assetId, nowMs) {
-  const m = db.prepare('SELECT ts, mark FROM marks WHERE asset = ? AND mark IS NOT NULL AND ts > ? ORDER BY ts').all(assetId, nowMs - 86_400_000);
-  const b = staleBoundFromDrift(m);
+  const b = staleBoundFromDrift(driftSeries(db, assetId, nowMs));
   return { ...b, boundS: b.basis === 'too_few_samples' ? DEFAULT_STALE_S : b.boundS };
 }
 

@@ -130,3 +130,21 @@ test('refine: a failing venue aborts the search as limited_by failed, never as a
   const rows = q(db, 'SELECT * FROM bisect');
   assert.ok(rows.length === 4 && rows.every((r) => r.limited_by === 'failed' && r.safe_usd === null));
 });
+
+test('the marks row is written after the asset\'s samples, so a reader never sees a cycle with no rows', async () => {
+  const db = openStore(':memory:');
+  // observe the DB from inside the slowest venue call: at that moment samples for this cycle are not all
+  // written, so the marks row for the cycle must not exist yet
+  const net = fakeNet();
+  let seenMarksDuringCycle = null;
+  const spy = async (url, init) => {
+    if (String(url).includes('stellar.broker') && Number(new URL(String(url)).searchParams.get('sellingAmount')) > 100000) {
+      seenMarksDuringCycle = db.prepare("SELECT COUNT(*) n FROM marks WHERE mark IS NOT NULL AND cycle_id = (SELECT MAX(cycle_id) FROM cycles)").get().n;
+    }
+    return net(url, init);
+  };
+  await runCycle(db, uni, { lanes: lanesFast(), apiKey: '', fetch: spy });
+  assert.equal(seenMarksDuringCycle, 0, 'mark was visible before the cycle finished');
+  const m = db.prepare('SELECT ts FROM marks').get().ts, last = db.prepare("SELECT MAX(ts) t FROM samples WHERE venue != 'engine'").get().t;
+  assert.ok(m >= last, 'mark is not older than the newest sample');
+});

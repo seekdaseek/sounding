@@ -3,7 +3,8 @@
 //   node scripts/results-md.mjs path/to/sounding.db [--json]
 // Every number comes from the database; nothing is typed here.
 import { openStore } from '../src/store.mjs';
-import { median, staleBoundFromDrift } from '../src/engine.mjs';
+import { median } from '../src/engine.mjs';
+import { staleBound } from '../src/read.mjs';
 
 const path = process.argv[2];
 if (!path) { console.error('usage: results-md.mjs sounding.db'); process.exit(2); }
@@ -50,10 +51,9 @@ for (const a of assets) {
 }
 out.push('', '`+` = lower bound: even the largest sampled size ($1M) stayed inside the tolerance.');
 
-out.push('', '### Stale bounds from measured drift (per asset)', '', '| asset | marks | cycle sigma (bps) | stale bound (s) | basis |', '|---|---:|---:|---:|---|');
+out.push('', '### Stale bounds from measured drift (per asset)', '', 'Drift series = best-exit price at $100k per cycle (mark and depth together). bound = clamp((100 bps / sigma)^2 x cycle gap, 1200 s, 7200 s); 3,600 s until six cycles exist.', '', '| asset | cycles in series | cycle sigma (bps) | stale bound (s) | basis |', '|---|---:|---:|---:|---|');
 for (const a of assets) {
-  const m = all('SELECT ts, mark FROM marks WHERE asset = ? AND mark IS NOT NULL ORDER BY ts', a);
-  const b = staleBoundFromDrift(m);
-  out.push(`| ${a} | ${m.length} | ${b.sigmaCycle ? f(b.sigmaCycle * 1e4, 1) : 'n/a'} | ${f(b.basis === 'too_few_samples' ? 3600 : b.boundS)} | ${b.basis} |`);
+  const b = staleBound(db, a, now);
+  out.push(`| ${a} | ${b.n} | ${b.sigmaCycle ? f(b.sigmaCycle * 1e4, 1) : 'n/a'} | ${f(b.boundS)} | ${b.basis} |`);
 }
 console.log(out.join('\n'));

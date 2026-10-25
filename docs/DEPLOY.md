@@ -40,6 +40,15 @@ X402_TESTNET_PAYTO=G...                  # public address that receives testnet 
 Without `SOROSWAP_API_KEY` the sampler still runs; the Soroswap venue records typed `no_key` failures.
 Check a key without printing it: `awk -F= '/^SOROSWAP_API_KEY=/{print length($2)}' .env`.
 
+**Installing the key from a Mac without echoing it** (zsh; the key travels over ssh stdin, never argv,
+replaces any old `SOROSWAP_API_KEY=` line, keeps the other variables, restarts the processes with delete + start):
+
+```zsh
+printf 'Paste key: '; read -rs K; echo; case "$K" in sk_??????????*) printf '%s' "$K" | ssh -o BatchMode=yes solwatch 'umask 077; K=$(cat); F=/opt/sounding/.env; touch "$F"; grep -v "^SOROSWAP_API_KEY=" "$F" > "$F.new"; printf "SOROSWAP_API_KEY=%s\n" "$K" >> "$F.new"; mv "$F.new" "$F"; chmod 600 "$F"; echo "key saved, length ${#K}"; sh /opt/sounding/ops/pm2-start.sh' ;; *) echo "that does not look like an sk_ key; nothing written" ;; esac; unset K
+```
+
+The first cycle with a key takes about 5 minutes (1 request/s, 6 Soroswap calls per asset and size).
+
 ## 3. Start
 
 ```bash

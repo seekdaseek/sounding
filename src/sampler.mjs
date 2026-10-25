@@ -106,12 +106,15 @@ export async function runCycle(db, universe, ctx, { log = () => {} } = {}) {
       rowsA = await quoteAll({ asset, units: u0, sizeUsd: sizes[0] }, ctx);
       mark = markFromSmallQuotes(rowsA, u0);
     }
-    db.prepare('INSERT OR REPLACE INTO marks (cycle_id, ts, asset, mark, n_venues) VALUES (?,?,?,?,?)')
-      .run(cycleId, Date.now(), asset.id, mark, rowsA.filter((r) => r.status === 'ok').length);
+    // The marks row is the readers' "this cycle is complete for this asset" marker, so it is written
+    // LAST, after every sample row of the asset. Written first, a reader would see the new cycle with
+    // no rows for as long as the slowest venue takes (minutes once Soroswap is keyed).
+    const nOk = rowsA.filter((r) => r.status === 'ok').length;
+    const writeMark = () => db.prepare('INSERT OR REPLACE INTO marks (cycle_id, ts, asset, mark, n_venues) VALUES (?,?,?,?,?)').run(cycleId, Date.now(), asset.id, mark, nOk);
     const out = rowsA.map((r) => toRow(cycleId, asset, sizes[0], u0, mark, r));
     if (!mark) {
       out.push({ cycle_id: cycleId, ts: Date.now(), asset: asset.id, size_usd: sizes[0], units: u0, venue: 'engine', status: 'failed', fail_kind: 'no_mark', detail: 'no venue answered at the smallest size; larger sizes skipped', ms: 0 });
-      insertSamples(db, out); nRows += out.length; return;
+      insertSamples(db, out); writeMark(); nRows += out.length; return;
     }
     // C. the larger sizes, sized from this cycle's mark
     for (const s of sizes.slice(1)) {
@@ -119,7 +122,7 @@ export async function runCycle(db, universe, ctx, { log = () => {} } = {}) {
       const rows = await quoteAll({ asset, units, sizeUsd: s }, ctx);
       for (const r of rows) out.push(toRow(cycleId, asset, s, units, mark, r));
     }
-    insertSamples(db, out); nRows += out.length;
+    insertSamples(db, out); writeMark(); nRows += out.length;
     // D. closed form on the direct book
     await bookSafe(db, cycleId, asset, mark, ctx);
     log(`  ${asset.id}: mark=${mark.toPrecision(6)} rows=${out.length}`);

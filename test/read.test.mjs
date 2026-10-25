@@ -126,11 +126,23 @@ test('bestCurve takes the cheapest top venue per size and ignores sub-venues and
   assert.deepEqual(Object.keys(curves(db.prepare('SELECT * FROM samples').all())).includes('soroswap_agg:sdex'), true);
 });
 
-test('staleBound uses the default until it has history, then the measured drift', () => {
+test('staleBound uses the default until it has history, then the measured drift of the best-exit price', () => {
   const db = openStore(':memory:');
   cycle(db, 1, T0, GOOD);
   assert.equal(staleBound(db, 'A', T0 + 1000).boundS, 3600);
-  for (let i = 2; i <= 30; i++) { db.prepare('INSERT INTO marks (cycle_id, ts, asset, mark, n_venues) VALUES (?,?,?,?,3)').run(i, T0 + i * 600_000, 'A', 2 * (1 + 0.0003 * Math.sin(i))); }
-  const b = staleBound(db, 'A', T0 + 31 * 600_000);
-  assert.equal(b.basis, 'drift'); assert.ok(b.boundS >= 1200 && b.boundS <= 7200);
+  assert.equal(staleBound(db, 'A', T0 + 1000).basis, 'too_few_samples');
+  for (let i = 2; i <= 30; i++) cycle(db, i, T0 + i * 600_000, GOOD);
+  const calm = staleBound(db, 'A', T0 + 31 * 600_000);
+  assert.equal(calm.basis, 'drift'); assert.ok(calm.boundS >= 1200 && calm.boundS <= 7200);
+});
+
+test('depth drift shortens the stale bound even when the mark never moves (the mark-only blind spot)', () => {
+  const steady = openStore(':memory:'), pulled = openStore(':memory:');
+  const thin = { sdex_horizon: { 1000: 5, 10000: 400, 100000: 3000, 1000000: 9000 }, aquarius: { 1000: 6, 10000: 420, 100000: 3100, 1000000: 9100 }, broker: { 1000: 0, 10000: 390, 100000: 2900, 1000000: 8900 } };
+  for (let i = 1; i <= 30; i++) {
+    cycle(steady, i, T0 + i * 600_000, GOOD);
+    cycle(pulled, i, T0 + i * 600_000, i % 2 ? GOOD : thin); // same mark every cycle, depth flips between deep and thin
+  }
+  const a = staleBound(steady, 'A', T0 + 31 * 600_000), b = staleBound(pulled, 'A', T0 + 31 * 600_000);
+  assert.ok(b.boundS < a.boundS, `pulled ${b.boundS} < steady ${a.boundS}`);
 });

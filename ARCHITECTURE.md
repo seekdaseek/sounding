@@ -70,7 +70,7 @@ sampler, the mark and the safe-size functions, and each has a test that fails if
 ## 3. Engine math
 
 All pure functions, no I/O, no clock: `src/engine.mjs` (plus `src/depth.mjs` for the order book).
-`npm test` runs the offline suite (80 tests at the time of writing, no network).
+`npm test` runs the offline suite (82 tests at the time of writing, no network).
 
 **Asset universe.** Candidates are the classic-issued assets in the live Aquarius pool list (and the
 Soroswap pool list once a key exists), each *measured* (`bin/discover.mjs`) against USDC through
@@ -152,8 +152,12 @@ the raw per-venue data, so a consumer can see why.
 Every report carries `ts`, `age_s`, `stale`, `stale_bound_s` and `stale_bound_basis`. It is stale when
 `age_s` exceeds the bound.
 
-**Per-asset bound from measured drift** (`staleBoundFromDrift`). From the asset's own mark history
-(last 24 h): `sigma` = standard deviation of the log-return between consecutive cycles;
+**Per-asset bound from measured drift** (`staleBoundFromDrift`, series from `driftSeries` in
+`src/read.mjs`). The drifting quantity is the best-exit price at $100k per cycle, `mark x (1 - best
+cost)`, so it moves when the price moves *and* when depth appears or vanishes; a mark-only series
+would call an asset calm while its book is being pulled (test: `depth drift shortens the stale bound
+even when the mark never moves`). Over the last 24 h: `sigma` = standard deviation of the log-return
+between consecutive cycles;
 `cycles_allowed = (100 bps / sigma)^2` (a random walk's deviation grows with the square root of
 elapsed cycles); `bound = clamp(cycles_allowed * median cycle gap, 1200 s, 7200 s)`. The floor is
 two cycles; the ceiling is two hours. With fewer than six marks the default is 3,600 s and the
