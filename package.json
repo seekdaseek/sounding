@@ -4,8 +4,13 @@
   "description": "Exit liquidity for Stellar assets: how much can I sell right now, and what does it cost, at size S. Four venues, measured every 10 minutes.",
   "type": "module",
   "license": "MIT",
-  "repository": { "type": "git", "url": "git+https://github.com/seekdaseek/sounding.git" },
-  "engines": { "node": ">=22.13" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/seekdaseek/sounding.git"
+  },
+  "engines": {
+    "node": ">=22.13"
+  },
   "scripts": {
     "test": "node --no-warnings --test \"test/*.test.mjs\"",
     "discover": "node bin/discover.mjs",
@@ -22,5 +27,8 @@
   },
   "optionalDependencies": {
     "@blend-capital/blend-sdk": "^3.3.0"
+  },
+  "overrides": {
+    "axios": "^1.20.0"
   }
 }

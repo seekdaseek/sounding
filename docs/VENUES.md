@@ -49,8 +49,8 @@ GET /paths/strict-send?source_asset_type=native&source_amount=5000.0000000&desti
 The adapter takes the record with the largest `destination_amount`.
 
 - **No route (real):** HTTP 200 with `"records": []`, which the adapter stores as `no_route`.
-- **Rate limits:** Horizon sent no `X-RateLimit-*` or `Retry-After` header on any call. The sampler paces this venue at one call per 350 ms and honours `Retry-After` if a 429 ever arrives (unit test: `horizon: 429 is a typed rate_limited failure`). Observed 429 count is in `/v1/stats` (`venues.sdex_horizon.failures_by_kind`).
-- **Failure modes seen:** none in the sampler so far. A 400 on a malformed asset is mapped to `bad_request`.
+- **Rate limits:** Horizon sent no `X-RateLimit-*` or `Retry-After` header on the responses I inspected. The sampler paces this venue at one call per 350 ms and honours `Retry-After` if a 429 ever arrives (unit test: `horizon: 429 is a typed rate_limited failure`). The observed `rate_limited` count is in `/v1/stats` (`venues.sdex_horizon.failures_by_kind`).
+- **Failure modes:** see the section at the end for what the sampler has recorded. A 400 on a malformed asset is mapped to `bad_request`.
 - **Also used:** `GET /order_book?...&limit=200` for the closed-form safe size on the direct book (`src/depth.mjs`). 200 is Horizon's maximum; the default of 20 silently truncates.
 
 ## 2. Aquarius: `aquarius`
@@ -133,5 +133,6 @@ GET /quote?sellingAsset=XLM&buyingAsset=USDC-GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2K
 ## What the sampler has seen go wrong
 
 Live counts are in `GET /v1/stats` (`venues.<id>.failures_by_kind`) and in `GET /v1/history.csv`
-(`fail_kind`). On the first 3 cycles (480 rows) the only failure kind was `no_key` on
-`soroswap_agg`. A final count is in `REPORT-*.md` and in ARCHITECTURE section 12.
+(`fail_kind`). The per-venue table of `ok` / `no_route` / `failed` answers, with failures by kind,
+is the first table in [`RESULTS.md`](RESULTS.md) ("Answers by venue"), regenerated from the
+production database. `no_key` on `soroswap_agg` is a configuration state, not an outage.

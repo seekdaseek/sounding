@@ -1,0 +1,9 @@
+# Public Stellar contract ids (C + 55 base32 chars) in documented curl examples look like generic API keys
+# to the default rules. Allow exactly that shape; every other finding still fails.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "public Soroban contract ids in docs"
+regexTarget = "secret"
+regexes = ['''^C[A-Z2-7]{55}$''']

@@ -289,7 +289,7 @@ flowchart LR
 | | flood on the public API | API | per-IP limits (60/min exit, 6/min CSV); Cloudflare in front; the sampler is a separate process | volumetric attack on the tunnel host |
 | | publisher outage | contract (DESIGN) | values age into `Stale`; failure is toward refusal | consumers must implement hold-on-stale |
 | **E**levation of privilege | publisher key used to pause or rotate | contract (DESIGN) | publisher can only `publish`; admin is a different, multisig key | admin multisig compromise |
-| | a dependency (npm) is malicious | build | sampler and API have **zero npm dependencies** (Node built-ins only); the paid server pins `@x402/*` 2.28.0 and the lockfile; `npm ci` | supply chain of Express and the x402 packages |
+| | a dependency (npm) is malicious | build | sampler and API have **zero npm dependencies** (Node built-ins only); the paid server pins `@x402/*` 2.28.0 and the lockfile, `npm ci`, and overrides `axios` to `^1.20.0`. `npm audit` on 2026-10-25 still lists 5 advisories in that tree (zod memory exhaustion via `@x402/core`, no upstream fix); the sampler and API are unaffected | supply chain of Express and the x402 packages; re-audit before mainnet |
 | | the x402 client signs more than intended | payer | the stock client's default $1 cap and default-assets-only filter are left on in `scripts/x402-testnet-pay.mjs` | none |
 
 ## 9. Monitoring plan
@@ -368,7 +368,22 @@ every table is [`docs/RESULTS.md`](docs/RESULTS.md). The live equivalents are `G
 `GET /v1/history.csv`. Headline as of the timestamp in `docs/RESULTS.md`:
 
 <!-- RESULTS:BEGIN -->
-(filled in by the report step)
+**640 samples** in **4 cycles** (one per 10 minutes) over 0.0 days, 10 assets x 4 sizes x 4 venues, first sample 2026-10-25T17:56:06Z, latest 2026-10-25T18:20:13Z. 0 venue answers failed for a reason other than a missing Soroswap key, each stored as a typed row and none read as zero liquidity; 160 rows are the Soroswap venue recording `no_key`.
+
+Selling **$100,000** of the asset into USDC, median cost in bps over 4 cycles:
+
+| asset | SDEX (Horizon paths) | Aquarius | Stellar Broker | spread between venues |
+|---|---:|---:|---:|---:|
+| XLM | 36 | 322 | 35 | 287 |
+| EURC | 76 | 6,102 | 50 | 6,052 |
+| USTRY | 6 | 879 | 6 | 872 |
+| PYUSD | 408 | 9 | 214 | 400 |
+| ETH | 7,366 | 5,970 | 3,849 | 3,517 |
+| BTC | 3,585 | 6,506 | 2,864 | 3,642 |
+
+(Soroswap is wired but has not yet returned a live quote; see "What is honest".)
+
+Full tables (per-venue answers, cost at $100k and $1M with spread, safe sizes by method, stale bounds): [`docs/RESULTS.md`](docs/RESULTS.md).
 <!-- RESULTS:END -->
 
 ## 13. History: the August 2026 Blend measurement
