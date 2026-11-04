@@ -54,7 +54,7 @@ Repo: <https://github.com/seekdaseek/sounding> (MIT).
 | E2 | An onchain success metric that is not our own activity | `ARCHITECTURE.md` section 6: distinct non-sounding accounts settling USDC to the receiving address, read from the public ledger. **Zero on mainnet today by construction** (mainnet is not live) |
 | E3 | x402 on Stellar works end to end | testnet settlement [`7a9c3cd9...2db4`](https://stellar.expert/explorer/testnet/tx/7a9c3cd9e2693cc8419459248a8fd24c96cd3a611b384f2c39409c984c2f2db4), ledger 5385598; reproduce with `scripts/x402-testnet-pay.mjs` (needs your own funded testnet payer: `scripts/x402-testnet-setup.mjs`) |
 | E4 | `$B/paid/v1/exit` demands payment | `curl -i "$B/paid/v1/exit?asset=XLM&size=100000"` (H) -> `402` with a `PAYMENT-REQUIRED` header: scheme `exact`, network `stellar:testnet`, amount `100000` (= $0.01), asset the testnet USDC SAC `CBIELTK6...` |
-| E5 | **Mainnet x402 is not done (disclosed)** | needs the owner's receiving account and an OpenZeppelin mainnet key; tranche 1 |
+| E5 | **Mainnet x402 is not done (disclosed)** | needs the owner's receiving account and the self-hosted facilitator; tranche 1 |
 | E6 | **The Soroban publisher contract is not built (disclosed)** | design only, `ARCHITECTURE.md` section 7 |
 
 ## F. Threats, monitoring, recovery (voter feedback item 5)

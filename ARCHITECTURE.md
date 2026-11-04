@@ -294,7 +294,7 @@ flowchart LR
 | STRIDE | threat | where | mitigation (BUILT unless marked) | residual |
 |---|---|---|---|---|
 | **S**poofing | a venue API is impersonated or DNS-hijacked and returns attractive quotes | sampler <- venues | HTTPS; disagreement refusal at $1k catches a venue paying far more than the rest; independent-venue share cap | all four APIs compromised together |
-| | a payer or the facilitator is impersonated | paid API | x402 verify/settle by the facilitator; the server never serves a paid response without a successful verify | trust in the facilitator operator (testnet: x402.org; mainnet: OpenZeppelin) |
+| | a payer or the facilitator is impersonated | paid API | x402 verify/settle by the facilitator; the server never serves a paid response without a successful verify | trust in the facilitator operator (testnet: x402.org; mainnet: our self-hosted facilitator) |
 | | a stranger calls `publish` | contract (DESIGN) | `publisher` auth; two-step admin | key compromise (section 10) |
 | **T**ampering | quotes or the sqlite file altered | sampler, box | box access limited to the operator; read API opens the DB read-only; nightly backup; the public CSV history is an off-box copy | operator box compromise |
 | | a venue returns manipulated depth | venues | time-weighted depth, appearing-level discount, share cap, disagreement refusal (section 4) | sustained multi-venue manipulation for an hour or more is expensive but not impossible; the published number is conservative, not a guarantee |
