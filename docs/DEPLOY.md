@@ -126,6 +126,7 @@ Horizon and Aquarius, and writes `data/universe.json`. Redeploy to apply it.
 ## 8. Mainnet x402 (not configured; tranche 1 of the grant)
 
 Needs the owner's receiving Stellar account (with a USDC trustline) and the self-hosted facilitator
-(tranche 1, not built yet). In `src/paid.mjs` set `network: 'stellar:pubnet'`, the facilitator URL, and send the key as the
-facilitator client's bearer header. See `stellar/x402-stellar` `examples/simple-paywall/server/src/middleware/payment.ts`.
+(tranche 1, not built yet). In `src/paid.mjs` set `network: 'stellar:pubnet'` and point the facilitator client at
+our self-hosted facilitator's URL. Settlement fees come from our own fee account (a small XLM float), so there is no
+third-party key and no extra header. See `stellar/x402-stellar` `examples/simple-paywall/server/src/middleware/payment.ts`.
 **UNTESTED on mainnet.**
