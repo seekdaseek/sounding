@@ -183,7 +183,7 @@ oracle mark alone (which is the failure this system exists to prevent). Encoded 
 ## 6. x402 on Stellar: payment flow
 
 BUILT and proven on **testnet only**. Mainnet is tranche 1 of the grant and needs the owner's
-receiving account and an OpenZeppelin mainnet key; it is not configured and **UNTESTED**. The in-browser
+receiving account and a self-hosted facilitator built from the open-source x402 Stellar facilitator code, with fees paid from our own fee account holding a small XLM float and no third-party payment service; it is not configured and **UNTESTED**. The in-browser
 wallet flow (Stellar Wallets Kit) is planned for tranche 2 and is not built; the only payer today is the
 testnet script.
 
