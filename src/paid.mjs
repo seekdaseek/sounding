@@ -3,7 +3,7 @@
 // @x402/express paymentMiddleware + x402ResourceServer + ExactStellarScheme + an HTTP facilitator.
 // TESTNET ONLY here: network stellar:testnet, facilitator https://x402.org/facilitator
 // (its /supported lists exact on stellar:testnet with fees sponsored; no key). Mainnet needs a
-// receiving account and an OpenZeppelin mainnet key and is NOT configured.
+// receiving account and our self-hosted facilitator (not built yet) and is NOT configured.
 import express from 'express';
 import { paymentMiddleware, x402ResourceServer } from '@x402/express';
 import { ExactStellarScheme } from '@x402/stellar/exact/server';
